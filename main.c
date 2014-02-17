@@ -101,7 +101,7 @@ void read_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const
 		if(device->opts4 & 0x2000) {
 			addr = addr >> 1;
 		}
-		minipro_read_block(handle, type, addr, buf + i);
+		minipro_read_block(handle, type, addr, buf + i * device->read_buffer_size);
 	}
 
 	printf("OK\n");
@@ -123,7 +123,7 @@ void write_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, cons
 		if(device->opts4 & 0x2000) {
 			addr = addr >> 1;
 		}
-		minipro_write_block(handle, type, addr, buf + i);
+		minipro_write_block(handle, type, addr, buf + i * device->write_buffer_size);
 	}
 
 	printf("OK\n");
@@ -165,14 +165,15 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	}
 
 	/* Loading file */
-	char *file_data = malloc(size);
-	fread(file_data, 1, size, file);
+	int file_size = get_file_size(filename);
+	char *file_data = malloc(file_size);
+	fread(file_data, 1, file_size, file);
 	fclose(file);
 
 	/* Downloading data from chip*/
 	char *chip_data = malloc(size);
 	read_page_ram(handle, chip_data, type, name, size);
-	int errors_found = memcmp(file_data, chip_data, size);
+	int errors_found = memcmp(file_data, chip_data, file_size);
 
 	/* No memory leaks */
 	free(file_data);
