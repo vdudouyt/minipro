@@ -181,6 +181,8 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 
 	if(errors_found) {
 		ERROR("Verification failed");
+	} else {
+		printf("Verification OK\n");
 	}
 }
 
