@@ -84,14 +84,10 @@ int get_file_size(const char *filename) {
 	return(size);
 }
 
-void read_page(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
+/* RAM-centric IO operations */
+void read_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const char *name, int size) {
 	printf("Reading %s... ", name);
 	fflush(stdout);
-
-	FILE *file = fopen(filename, "w");
-	if(file == NULL) {
-		PERROR("Couldn't open file");
-	}
 
 	device_t *device = handle->device;
 	if(size % device->read_buffer_size != 0) {
@@ -99,29 +95,21 @@ void read_page(minipro_handle_t *handle, const char *filename, unsigned int type
 	}
 
 	int i;
-	char buf[MAX_READ_BUFFER_SIZE];
 	for(i = 0; i < size / device->read_buffer_size; i++) {
 		// Translating address to protocol-specific
 		int addr = i * device->read_buffer_size;
 		if(device->opts4 & 0x2000) {
 			addr = addr >> 1;
 		}
-		minipro_read_block(handle, type, addr, buf);
-		fwrite(buf, 1, device->read_buffer_size, file);
+		minipro_read_block(handle, type, addr, buf + i);
 	}
 
-	fclose(file);
 	printf("OK\n");
 }
 
-void write_page(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
+void write_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const char *name, int size) {
 	printf("Writing %s... ", name);
 	fflush(stdout);
-
-	FILE *file = fopen(filename, "r");
-	if(file == NULL) {
-		PERROR("Couldn't open file");
-	}
 
 	device_t *device = handle->device;
 	if(size % device->write_buffer_size != 0) {
@@ -129,25 +117,77 @@ void write_page(minipro_handle_t *handle, const char *filename, unsigned int typ
 	}
 	
 	int i;
-	char buf[MAX_WRITE_BUFFER_SIZE];
 	for(i = 0; i < size / device->write_buffer_size; i++) {
 		// Translating address to protocol-specific
 		int addr = i * device->write_buffer_size;
 		if(device->opts4 & 0x2000) {
 			addr = addr >> 1;
 		}
-		int bytes_read = fread(buf, 1, device->write_buffer_size, file);
-		minipro_write_block(handle, type, addr, buf);
+		minipro_write_block(handle, type, addr, buf + i);
 	}
 
-	fclose(file);
 	printf("OK\n");
 }
 
+/* Wrappers for operating with files */
+void read_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
+	FILE *file = fopen(filename, "w");
+	if(file == NULL) {
+		PERROR("Couldn't open file for writing");
+	}
+
+	char *buf = malloc(size);
+	read_page_ram(handle, buf, type, name, size);
+	free(buf);
+
+	fwrite(buf, 1, size, file);
+	fclose(file);
+}
+
+void write_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
+	FILE *file = fopen(filename, "r");
+	if(file == NULL) {
+		PERROR("Couldn't open file for reading");
+	}
+
+	char *buf = malloc(size);
+	fread(buf, 1, size, file);
+	write_page_ram(handle, buf, type, name, size);
+	free(buf);
+
+	fclose(file);
+}
+
+void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
+	FILE *file = fopen(filename, "r");
+	if(file == NULL) {
+		PERROR("Couldn't open file for reading");
+	}
+
+	/* Loading file */
+	char *file_data = malloc(size);
+	fread(file_data, 1, size, file);
+	fclose(file);
+
+	/* Downloading data from chip*/
+	char *chip_data = malloc(size);
+	read_page_ram(handle, chip_data, type, name, size);
+	int errors_found = memcmp(file_data, chip_data, size);
+
+	/* No memory leaks */
+	free(file_data);
+	free(chip_data);
+
+	if(errors_found) {
+		ERROR("Verification failed");
+	}
+}
+
+/* Higher-level logic (e.g. write the code and data memory and perform verification) */
 void action_read(const char *filename, minipro_handle_t *handle, device_t *device) {
-	read_page(handle, filename, MP_READ_CODE, "Code", device->code_memory_size);
+	read_page_file(handle, filename, MP_READ_CODE, "Code", device->code_memory_size);
 	if(device->data_memory_size) {
-		read_page(handle, "eeprom.bin", MP_READ_DATA, "Data", device->data_memory_size);
+		read_page_file(handle, "eeprom.bin", MP_READ_DATA, "Data", device->data_memory_size);
 	}
 }
 
@@ -160,7 +200,8 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 	minipro_begin_transaction(handle); // Prevent device from hanging
 	char status[32];
 	minipro_get_status(handle, status);
-	write_page(handle, filename, MP_WRITE_CODE, "Code", device->code_memory_size);
+	write_page_file(handle, filename, MP_WRITE_CODE, "Code", device->code_memory_size);
+	verify_page_file(handle, filename, MP_READ_CODE, "Code", device->code_memory_size);
 }
 
 int main(int argc, char **argv) {
