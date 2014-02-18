@@ -43,7 +43,7 @@ void print_device_info(device_t *device) {
 	/* Package info */
 	printf("Package: ");
 	if(package_details[0]) {
-		printf("Adapter%d.JPG\n", package_details[0]);
+		printf("Adapter%03d.JPG\n", package_details[0]);
 	} else {
 		printf("DIP%d\n", package_details[3]);
 	}
