@@ -44,8 +44,10 @@ void print_device_info(device_t *device) {
 	printf("Package: ");
 	if(package_details[0]) {
 		printf("Adapter%03d.JPG\n", package_details[0]);
-	} else {
+	} else if(package_details[3]) {
 		printf("DIP%d\n", package_details[3]);
+	} else {
+		printf("ISP only\n");
 	}
 
 	/* ISP connection info */
