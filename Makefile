@@ -12,10 +12,10 @@ LIBS = `pkg-config --libs libusb-1.0`
 all: $(OBJECTS) $(PROGS)
 
 minipro: $(COMMON_OBJECTS) main.o
-	$(CC) $(LIBS) $(COMMON_OBJECTS) main.o -o $(MINIPRO)
+	$(CC) $(COMMON_OBJECTS) main.o $(LIBS) -o $(MINIPRO)
 
 minipro-query-db: $(COMMON_OBJECTS) minipro-query-db.o
-	$(CC) $(LIBS) $(COMMON_OBJECTS) minipro-query-db.o -o $(MINIPRO_QUERY_DB)
+	$(CC) $(COMMON_OBJECTS) minipro-query-db.o $(LIBS) -o $(MINIPRO_QUERY_DB)
 
 clean:
 	rm -f $(OBJECTS) $(PROGS)
