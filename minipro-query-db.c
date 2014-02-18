@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "minipro.h"
+#include "byte_utils.h"
 #include "database.h"
 #include "error.h"
 
@@ -37,12 +38,22 @@ void print_device_info(device_t *device) {
 	}
 	printf("\n");
 
+	char package_details[4];
+	format_int(package_details, device->package_details, 4, MP_LITTLE_ENDIAN);
 	/* Package info */
 	printf("Package: ");
-	if(device->package_details & 0xFF) {
-		printf("Adapter%d.JPG\n", device->package_details & 0xFF);
+	if(package_details[0]) {
+		printf("Adapter%d.JPG\n", package_details[0]);
 	} else {
-		printf("DIP%d\n", (device->package_details & 0xFF000000) >> 8*3);
+		printf("DIP%d\n", package_details[3]);
+	}
+
+	/* ISP connection info */
+	printf("ISP: ");
+	if(package_details[1]) {
+		printf("ICP%03d.JPG\n", package_details[1]);
+	} else {
+		printf("-\n");
 	}
 
 	printf("Protocol: 0x%02x\n", device->protocol_id);
