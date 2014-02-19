@@ -24,6 +24,8 @@ typedef struct device {
 	void *config;
 } device_t;
 
+#define WORD_SIZE(device) (((device)->opts4 & 0xFF000000) == 0x01000000 ? 2 : 1)
+
 extern device_t devices[];
 
 device_t *get_device_by_name(const char *name);

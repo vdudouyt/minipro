@@ -16,7 +16,7 @@ void print_device_info(device_t *device) {
 	printf("Name: %s\n", device->name);
 
 	/* Memory shape */
-	printf("Memory: %d", device->code_memory_size);
+	printf("Memory: %d", device->code_memory_size / WORD_SIZE(device));
 	switch(device->opts4 & 0xFF000000) {
 		case 0x00000000:
 			printf(" Bytes");
