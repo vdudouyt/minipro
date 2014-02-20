@@ -142,10 +142,10 @@ void read_page_file(minipro_handle_t *handle, const char *filename, unsigned int
 	}
 
 	read_page_ram(handle, buf, type, name, size);
-	free(buf);
-
 	fwrite(buf, 1, size, file);
+
 	fclose(file);
+	free(buf);
 }
 
 void write_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
@@ -161,9 +161,9 @@ void write_page_file(minipro_handle_t *handle, const char *filename, unsigned in
 
 	fread(buf, 1, size, file);
 	write_page_ram(handle, buf, type, name, size);
-	free(buf);
 
 	fclose(file);
+	free(buf);
 }
 
 void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
