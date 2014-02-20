@@ -104,7 +104,7 @@ void minipro_write_block(minipro_handle_t *handle, unsigned int type, unsigned i
 int minipro_get_chip_id(minipro_handle_t *handle) {
 	msg_init(msg, MP_GET_CHIP_ID, handle->device);
 	msg_send(handle, msg, 8);
-	msg_recv(handle, msg, 8);
+	msg_recv(handle, msg, 5 + handle->device->chip_id_bytes_count);
 
 	return(load_int(&(msg[2]), handle->device->chip_id_bytes_count, MP_BIG_ENDIAN));
 }
