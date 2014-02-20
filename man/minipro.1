@@ -1,0 +1,24 @@
+.TH MINIPRO 1 "20 February 2014 (v0.1)" "Valentin Dudouyt"
+.SH NAME
+minipro \- flash various chips with Minipro TL866XX series of programmers from autoelectric.cn.
+.SH SYNOPSIS
+.B minipro
+.RB [-p " device"]
+.RB [-c " code|data|config"]
+.RB [-r|-w " filename"]
+
+If
+.B -c
+is omitted and
+.B -r
+is specified then the code, data (if applicable) and config (if applicable) are getting read in filename.$ext, filename.eeprom.$ext and filename.config.txt correspondingly. If
+.B -c
+is omitted and
+.B -w
+is specified then
+.B -c code
+is getting enforced.
+
+.SH DESCRIPTION
+.I minipro
+is an opensource tool that aims to create a complete cross-platform replacement for proprietary utility from autoelectric.cn. Currently it's supporting more than 13000 of target devices - including AVRs, PICs as well as a huge number of other microcontrollers and various BIOSes.
