@@ -6,7 +6,7 @@ MINIPRO_QUERY_DB=minipro-query-db
 TESTS=$(wildcard tests/test_*.c);
 OBJCOPY=objcopy
 
-CFLAGS = `pkg-config --cflags libusb-1.0` -g -O0
+override CFLAGS += `pkg-config --cflags libusb-1.0` -g -O0
 LIBS = `pkg-config --libs libusb-1.0`
 
 all: $(OBJECTS) $(PROGS)
