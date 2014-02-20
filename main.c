@@ -137,6 +137,10 @@ void read_page_file(minipro_handle_t *handle, const char *filename, unsigned int
 	}
 
 	char *buf = malloc(size);
+	if(!buf) {
+		ERROR("Can't malloc");
+	}
+
 	read_page_ram(handle, buf, type, name, size);
 	free(buf);
 
@@ -151,6 +155,10 @@ void write_page_file(minipro_handle_t *handle, const char *filename, unsigned in
 	}
 
 	char *buf = malloc(size);
+	if(!buf) {
+		ERROR("Can't malloc");
+	}
+
 	fread(buf, 1, size, file);
 	write_page_ram(handle, buf, type, name, size);
 	free(buf);
