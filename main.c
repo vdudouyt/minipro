@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
 	minipro_get_status(handle);
 
 	// Verifying Chip ID (if applicable)
-	if(device->chip_id_bytes_count) {
+	if(device->chip_id_bytes_count && device->chip_id) {
 		unsigned int chip_id = minipro_get_chip_id(handle);
 		if (chip_id == device->chip_id) {
 			printf("Chip ID OK: 0x%02x\n", chip_id);
