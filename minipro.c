@@ -78,10 +78,20 @@ void minipro_end_transaction(minipro_handle_t *handle) {
 	msg_send(handle, msg, 4);
 }
 
-void minipro_get_status(minipro_handle_t *handle, char *status) {
+int minipro_get_status(minipro_handle_t *handle) {
+	char buf[32];
 	msg_init(msg, MP_REQUEST_STATUS1_MSG2, handle->device);
 	msg_send(handle, msg, 5);
-	msg_recv(handle, status, 32);
+	msg_recv(handle, buf, 32);
+
+	int i;
+	for(i = 2; i < 32; i++) {
+		if(buf[i] != 0) {
+			ERROR("Overcurrency protection");
+		}
+	}
+
+	return(load_int(buf, 2, MP_LITTLE_ENDIAN));
 }
 
 void minipro_read_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, char *buf) {

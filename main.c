@@ -209,8 +209,7 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 	minipro_prepare_writing(handle);
 	minipro_end_transaction(handle); // Let prepare_writing() to make an effect
 	minipro_begin_transaction(handle); // Prevent device from hanging
-	char status[32];
-	minipro_get_status(handle, status);
+	minipro_get_status(handle);
 	write_page_file(handle, filename, MP_WRITE_CODE, "Code", device->code_memory_size);
 	verify_page_file(handle, filename, MP_READ_CODE, "Code", device->code_memory_size);
 }
@@ -224,7 +223,6 @@ int main(int argc, char **argv) {
 		USAGE_ERROR("Device required");
 	}
 
-	char status[32];
 	device_t *device = cmdopts.device;
 	minipro_handle_t *handle = minipro_open(device);
 
@@ -234,7 +232,7 @@ int main(int argc, char **argv) {
 	printf("Found Minipro %s v%s\n", info.model_str, info.firmware_str);
 
 	minipro_begin_transaction(handle);
-	minipro_get_status(handle, status);
+	minipro_get_status(handle);
 
 	// Verifying Chip ID (if applicable)
 	if(device->chip_id_bytes_count) {
