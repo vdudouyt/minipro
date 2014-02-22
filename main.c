@@ -12,7 +12,7 @@ struct {
 	void (*action) (const char *, minipro_handle_t *handle, device_t *device);
 	char *filename;
 	device_t *device;
-	enum { CODE_MEMORY, DATA_MEMORY, CONFIG } part;
+	enum { UNSPECIFIED = 0, CODE, DATA, CONFIG } page;
 } cmdopts;
 
 void print_help_and_exit(const char *progname) {
@@ -21,7 +21,10 @@ void print_help_and_exit(const char *progname) {
 		"options:\n"
 		"	-r <filename>	Read memory\n"
 		"	-w <filename>	Write memory\n"
-		"	-p <device>	Specify device\n";
+		"	-p <device>	Specify device\n"
+		"	-c <type>	Specify memory type (optional)\n"
+		"			Possible values: code, data, config\n"
+		"	-i		Use ISP\n";
 	fprintf(stderr, usage, progname);
 	exit(-1);
 }
@@ -51,7 +54,7 @@ void parse_cmdline(int argc, char **argv) {
 		print_help_and_exit(argv[0]);
 	}
 
-	while((c = getopt(argc, argv, "r:w:p:")) != -1) {
+	while((c = getopt(argc, argv, "r:w:p:c:")) != -1) {
 		switch(c) {
 			case 'p':
 				if(!strcmp(optarg, "help"))
@@ -59,6 +62,17 @@ void parse_cmdline(int argc, char **argv) {
 				cmdopts.device = get_device_by_name(optarg);
 				if(!cmdopts.device)
 					ERROR("Unknown device");
+				break;
+			case 'c':
+				if(!strcmp(optarg, "code"))
+					cmdopts.page = CODE;
+				if(!strcmp(optarg, "data"))
+					cmdopts.page = DATA;
+				if(!strcmp(optarg, "config"))
+					cmdopts.page = CONFIG;
+				if(!cmdopts.page)
+					ERROR("Unknown memory type");
+				break;
 			case 'r':
 				cmdopts.action = action_read;
 				cmdopts.filename = optarg;
@@ -225,11 +239,23 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	}
 }
 
-/* Higher-level logic (e.g. write the code and data memory and perform verification) */
+/* Higher-level logic */
 void action_read(const char *filename, minipro_handle_t *handle, device_t *device) {
-	read_page_file(handle, filename, MP_READ_CODE, "Code", device->code_memory_size);
-	if(device->data_memory_size) {
-		read_page_file(handle, "eeprom.bin", MP_READ_DATA, "Data", device->data_memory_size);
+	char *code_filename = (char*) filename;
+	char *data_filename = (char*) filename;
+	char default_data_filename[] = "eeprom.bin";
+
+	switch(cmdopts.page) {
+		case UNSPECIFIED:
+			data_filename = default_data_filename;
+		case CODE:
+			read_page_file(handle, code_filename, MP_READ_CODE, "Code", device->code_memory_size);
+			if(cmdopts.page) break;
+		case DATA:
+			if(device->data_memory_size) {
+				read_page_file(handle, data_filename, MP_READ_DATA, "Data", device->data_memory_size);
+			}
+			break;
 	}
 }
 
@@ -241,8 +267,18 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 	minipro_end_transaction(handle); // Let prepare_writing() to make an effect
 	minipro_begin_transaction(handle); // Prevent device from hanging
 	minipro_get_status(handle);
-	write_page_file(handle, filename, MP_WRITE_CODE, "Code", device->code_memory_size);
-	verify_page_file(handle, filename, MP_READ_CODE, "Code", device->code_memory_size);
+
+	switch(cmdopts.page) {
+		case UNSPECIFIED:
+		case CODE:
+			write_page_file(handle, filename, MP_WRITE_CODE, "Code", device->code_memory_size);
+			verify_page_file(handle, filename, MP_READ_CODE, "Code", device->code_memory_size);
+			break;
+		case DATA:
+			write_page_file(handle, filename, MP_WRITE_DATA, "Data", device->data_memory_size);
+			verify_page_file(handle, filename, MP_READ_DATA, "Data", device->data_memory_size);
+			break;
+	}
 }
 
 int main(int argc, char **argv) {
