@@ -222,8 +222,6 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	fread(file_data, 1, file_size, file);
 	fclose(file);
 
-	/* Let the things to be proceeded */
-	minipro_end_transaction(handle);
 	minipro_begin_transaction(handle);
 
 	/* Downloading data from chip*/
@@ -241,6 +239,8 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	} else {
 		printf("Verification OK\n");
 	}
+
+	minipro_end_transaction(handle);
 }
 
 /* Higher-level logic */
@@ -249,6 +249,7 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 	char *data_filename = (char*) filename;
 	char default_data_filename[] = "eeprom.bin";
 
+	minipro_begin_transaction(handle); // Prevent device from hanging
 	switch(cmdopts.page) {
 		case UNSPECIFIED:
 			data_filename = default_data_filename;
@@ -261,15 +262,18 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 			}
 			break;
 	}
+	minipro_end_transaction(handle); // Let prepare_writing() to make an effect
 }
 
 void action_write(const char *filename, minipro_handle_t *handle, device_t *device) {
 	if(get_file_size(filename) > device->code_memory_size) {
 		ERROR("File is too large");
 	}
+	minipro_begin_transaction(handle);
 	minipro_prepare_writing(handle);
-	minipro_end_transaction(handle); // Let prepare_writing() to make an effect
-	minipro_begin_transaction(handle); // Prevent device from hanging
+	minipro_end_transaction(handle); // Let prepare_writing() to take an effect
+
+	minipro_begin_transaction(handle);
 	minipro_get_status(handle);
 
 	switch(cmdopts.page) {
@@ -283,6 +287,7 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 			verify_page_file(handle, filename, MP_READ_DATA, "Data", device->data_memory_size);
 			break;
 	}
+	minipro_end_transaction(handle); // Let prepare_writing() to make an effect
 }
 
 int main(int argc, char **argv) {
@@ -302,22 +307,20 @@ int main(int argc, char **argv) {
 	minipro_get_system_info(handle, &info);
 	printf("Found Minipro %s v%s\n", info.model_str, info.firmware_str);
 
-	minipro_begin_transaction(handle);
-	minipro_get_status(handle);
-
 	// Verifying Chip ID (if applicable)
 	if(device->chip_id_bytes_count && device->chip_id) {
+		minipro_begin_transaction(handle);
 		unsigned int chip_id = minipro_get_chip_id(handle);
 		if (chip_id == device->chip_id) {
 			printf("Chip ID OK: 0x%02x\n", chip_id);
 		} else {
 			ERROR2("Invalid Chip ID: expected 0x%02x, got 0x%02x\n", device->chip_id, chip_id);
-		}
+		}		
+		minipro_end_transaction(handle);
 	}
 
 	cmdopts.action(cmdopts.filename, handle, device);
 
-	minipro_end_transaction(handle);
 	minipro_close(handle);
 
 	return(0);
