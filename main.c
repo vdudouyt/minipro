@@ -222,6 +222,10 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	fread(file_data, 1, file_size, file);
 	fclose(file);
 
+	/* Let the things to be proceeded */
+	minipro_end_transaction(handle);
+	minipro_begin_transaction(handle);
+
 	/* Downloading data from chip*/
 	char *chip_data = malloc(size);
 	read_page_ram(handle, chip_data, type, name, size);
