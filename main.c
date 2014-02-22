@@ -93,6 +93,18 @@ int update_status(char *status_msg, char *fmt, ...) {
 	fflush(stdout);
 }
 
+int compare_memory(char *buf1, char *buf2, int size, char *c1, char *c2) {
+	int i;
+	for(i = 0; i < size; i++) {
+		if(buf1[i] != buf2[i]) {
+			*c1 = buf1[i];
+			*c2 = buf2[i];
+			return(i);
+		}
+	}
+	return(-1);
+}
+
 /* RAM-centric IO operations */
 void read_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const char *name, int size) {
 	char status_msg[24];
@@ -199,14 +211,15 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	/* Downloading data from chip*/
 	char *chip_data = malloc(size);
 	read_page_ram(handle, chip_data, type, name, size);
-	int errors_found = memcmp(file_data, chip_data, file_size);
+	unsigned char c1, c2;
+	int idx = compare_memory(file_data, chip_data, file_size, &c1, &c2);
 
 	/* No memory leaks */
 	free(file_data);
 	free(chip_data);
 
-	if(errors_found) {
-		ERROR("Verification failed");
+	if(idx != -1) {
+		ERROR2("Verification failed at 0x%02x: 0x%02x != 0x%02x\n", idx, c1, c2);
 	} else {
 		printf("Verification OK\n");
 	}
