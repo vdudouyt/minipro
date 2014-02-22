@@ -132,10 +132,7 @@ void read_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const
 	int i;
 	int blocks_count = size / device->read_buffer_size;
 	for(i = 0; i < blocks_count; i++) {
-		// Updating status line
-		if(i % 10) {
-			update_status(status_msg, "%2d%%", i * 100 / blocks_count);
-		}
+		update_status(status_msg, "%2d%%", i * 100 / blocks_count);
 		// Translating address to protocol-specific
 		int addr = i * device->read_buffer_size;
 		if(device->opts4 & 0x2000) {
@@ -159,10 +156,7 @@ void write_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, cons
 	int i;
 	int blocks_count = size / device->write_buffer_size;
 	for(i = 0; i < blocks_count; i++) {
-		// Updating status line
-		if(i % 10) {
-			update_status(status_msg, "%2d%%", i * 100 / blocks_count);
-		}
+		update_status(status_msg, "%2d%%", i * 100 / blocks_count);
 		// Translating address to protocol-specific
 		int addr = i * device->write_buffer_size;
 		if(device->opts4 & 0x2000) {
