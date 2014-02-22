@@ -84,11 +84,8 @@ int minipro_get_status(minipro_handle_t *handle) {
 	msg_send(handle, msg, 5);
 	msg_recv(handle, buf, 32);
 
-	int i;
-	for(i = 2; i < 32; i++) {
-		if(buf[i] != 0) {
-			ERROR("Overcurrency protection");
-		}
+	if(buf[9] != 0) {
+		ERROR("Overcurrency protection");
 	}
 
 	return(load_int(buf, 2, MP_LITTLE_ENDIAN));
