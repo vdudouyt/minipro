@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 #include "main.h"
@@ -84,10 +85,18 @@ int get_file_size(const char *filename) {
 	return(size);
 }
 
+int update_status(char *status_msg, char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	printf("\r\e[K%s", status_msg);
+	vprintf(fmt, args);
+	fflush(stdout);
+}
+
 /* RAM-centric IO operations */
 void read_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const char *name, int size) {
-	printf("Reading %s... ", name);
-	fflush(stdout);
+	char status_msg[24];
+	sprintf(status_msg, "Reading %s... ", name);
 
 	device_t *device = handle->device;
 	if(size % device->read_buffer_size != 0) {
@@ -95,7 +104,12 @@ void read_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const
 	}
 
 	int i;
-	for(i = 0; i < size / device->read_buffer_size; i++) {
+	int blocks_count = size / device->read_buffer_size;
+	for(i = 0; i < blocks_count; i++) {
+		// Updating status line
+		if(i % 10) {
+			update_status(status_msg, "%2d%%", i * 100 / blocks_count);
+		}
 		// Translating address to protocol-specific
 		int addr = i * device->read_buffer_size;
 		if(device->opts4 & 0x2000) {
@@ -104,12 +118,12 @@ void read_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const
 		minipro_read_block(handle, type, addr, buf + i * device->read_buffer_size);
 	}
 
-	printf("OK\n");
+	update_status(status_msg, "OK\n");
 }
 
 void write_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const char *name, int size) {
-	printf("Writing %s... ", name);
-	fflush(stdout);
+	char status_msg[24];
+	sprintf(status_msg, "Writing %s... ", name);
 
 	device_t *device = handle->device;
 	if(size % device->write_buffer_size != 0) {
@@ -117,7 +131,12 @@ void write_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, cons
 	}
 	
 	int i;
-	for(i = 0; i < size / device->write_buffer_size; i++) {
+	int blocks_count = size / device->write_buffer_size;
+	for(i = 0; i < blocks_count; i++) {
+		// Updating status line
+		if(i % 10) {
+			update_status(status_msg, "%2d%%", i * 100 / blocks_count);
+		}
 		// Translating address to protocol-specific
 		int addr = i * device->write_buffer_size;
 		if(device->opts4 & 0x2000) {
@@ -125,8 +144,7 @@ void write_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, cons
 		}
 		minipro_write_block(handle, type, addr, buf + i * device->write_buffer_size);
 	}
-
-	printf("OK\n");
+	update_status(status_msg, "OK\n");
 }
 
 /* Wrappers for operating with files */
