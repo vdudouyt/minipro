@@ -11,7 +11,7 @@ An opensource rewrittement of autoelectric.cn programming utility
 * Overcurrency protection
 * System testing
 
-## Building & Installing under Debian / Ubuntu
+## Installing under Debian / Ubuntu
 
 Installing from this repository is as easy as:
 
