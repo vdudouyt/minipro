@@ -33,8 +33,3 @@ install:
 	cp $(MINIPRO_QUERY_DB) $(BIN_DIR)
 	cp udev/rules.d/80-minipro.rules $(UDEV_RULES_DIR)
 	cp man/minipro.1 $(MAN_DIR)
-
-test: $(TESTS:.c=.stamp)
-	$(CC) -c -I. $< $(CFLAGS) -DTEST -o $(<:.c=.o)
-	$(OBJCOPY) --weaken $(<:.c=.o)
-	$(CC) $(LIBS) $(COMMON_OBJECTS) $(<:.c=.o) -o $(<:.c=)

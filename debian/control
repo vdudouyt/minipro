@@ -1,0 +1,14 @@
+Source: minipro
+Section: universe/electronics
+Priority: extra
+Maintainer: Valentin Dudouyt <valentin.dudouyt@gmail.com>
+Build-Depends: debhelper (>= 8.0.0), libusb-1.0-0-dev
+Standards-Version: 3.9.4
+Homepage: https://github.com/vdudouyt/minipro
+Vcs-Git: git://github.com/vdudouyt/minipro
+Vcs-Browser: https://github.com/vdudouyt/minipro
+
+Package: minipro
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: software for Minipro TL866XX series of programmers from autoelectric.cn.
