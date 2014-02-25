@@ -26,5 +26,5 @@ Building a Debian package directly from this repository is as easy as
 sudo apt-get install build-essential git fakeroot dpkg-dev libusb-1.0-0-dev
 git clone https://github.com/vdudouyt/minipro/ && cd minipro/
 fakeroot dpkg-buildpackage -b
-sudo dpkg -i ../minipro_0.1-1_i386.deb
+sudo dpkg -i ../minipro_0.1-1_*.deb
 ```
