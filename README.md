@@ -17,8 +17,7 @@ Installing from this repository is as easy as:
 
 ```nohighlight
 sudo apt-get install build-essential libusb-1.0-0-dev fakeroot dpkg-dev
-git clone https://github.com/vdudouyt/minipro/
-cd minipro
+git clone https://github.com/vdudouyt/minipro/ && cd minipro/
 fakeroot dpkg-buildpackage -b
 sudo dpkg -i ../minipro_0.1-1_i386.deb
 ```
