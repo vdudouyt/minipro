@@ -20,7 +20,7 @@ $ minipro -p ATMEGA48 -r atmega48.bin
 
 ## Installing under Debian / Ubuntu
 
-Compiling the Debian package from this repository is as easy as:
+Building a Debian package from this repository is as easy as
 
 ```nohighlight
 sudo apt-get install build-essential libusb-1.0-0-dev fakeroot dpkg-dev
