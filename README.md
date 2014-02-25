@@ -11,9 +11,16 @@ An opensource rewrittement of autoelectric.cn programming utility
 * Overcurrency protection
 * System testing
 
-## Compiling under Debian / Ubuntu
+## Synopsis
 
-Installing from this repository is as easy as:
+```nohighlight
+$ minipro -p ATMEGA48 -w atmega48.bin
+$ minipro -p ATMEGA48 -r atmega48.bin
+```
+
+## Installing under Debian / Ubuntu
+
+Compiling the Debian package from this repository is as easy as:
 
 ```nohighlight
 sudo apt-get install build-essential libusb-1.0-0-dev fakeroot dpkg-dev
