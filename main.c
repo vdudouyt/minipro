@@ -6,6 +6,9 @@
 #include "main.h"
 #include "minipro.h"
 #include "database.h"
+#include "byte_utils.h"
+#include "fuses.h"
+#include "easyconfig.h"
 #include "error.h"
 
 struct {
@@ -204,6 +207,79 @@ void write_page_file(minipro_handle_t *handle, const char *filename, unsigned in
 	free(buf);
 }
 
+void read_fuses(minipro_handle_t *handle, const char *filename, fuse_decl_t *fuses) {
+	printf("Reading fuses... ");
+	fflush(stdout);
+	if(Config_init(filename)) {
+		PERROR("Couldn't create config");
+	}
+
+	minipro_begin_transaction(handle);
+	int i, d;
+	char data_length = 0, opcode = fuses[0].minipro_cmd;
+	char buf[11];
+	for(i = 0; fuses[i].name; i++) {
+		data_length += fuses[i].length;
+		if(fuses[i].minipro_cmd < opcode) {
+			ERROR("fuse_decls are not sorted");
+		}
+		if(fuses[i+1].name == NULL || fuses[i+1].minipro_cmd > opcode) {
+			minipro_read_fuses(handle, opcode, data_length, buf);
+			// Unpacking received buf[] accordingly to fuse_decls with same minipro_cmd
+			for(d = 0; fuses[d].name; d++) {
+				if(fuses[d].minipro_cmd != opcode) {
+					continue;
+				}
+				int value = load_int(&(buf[fuses[d].offset]), fuses[d].length, MP_LITTLE_ENDIAN);
+				Config_set_int(fuses[d].name, value);
+			}
+
+			opcode = fuses[i+1].minipro_cmd;
+			data_length = 0;
+		}
+	}
+	minipro_end_transaction(handle);
+
+	Config_close();
+	printf("OK\n");
+}
+
+void write_fuses(minipro_handle_t *handle, const char *filename, fuse_decl_t *fuses) {
+	printf("Writing fuses... ");
+	fflush(stdout);
+	if(Config_open(filename)) {
+		PERROR("Couldn't open config");
+	}
+
+	minipro_begin_transaction(handle);
+	int i, d;
+	char data_length = 0, opcode = fuses[0].minipro_cmd;
+	char buf[11];
+	for(i = 0; fuses[i].name; i++) {
+		data_length += fuses[i].length;
+		if(fuses[i].minipro_cmd < opcode) {
+			ERROR("fuse_decls are not sorted");
+		}
+		if(fuses[i+1].name == NULL || fuses[i+1].minipro_cmd > opcode) {
+			for(d = 0; fuses[d].name; d++) {
+				if(fuses[d].minipro_cmd != opcode) {
+					continue;
+				}
+				int value = Config_get_int(fuses[d].name);
+				format_int(&(buf[fuses[d].offset]), value, fuses[d].length, MP_LITTLE_ENDIAN);
+			}
+			minipro_write_fuses(handle, opcode, data_length, buf);
+
+			opcode = fuses[i+1].minipro_cmd;
+			data_length = 0;
+		}
+	}
+	minipro_end_transaction(handle);
+
+	Config_close();
+	printf("OK\n");
+}
+
 void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
 	FILE *file = fopen(filename, "r");
 	if(file == NULL) {
@@ -241,18 +317,26 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 void action_read(const char *filename, minipro_handle_t *handle, device_t *device) {
 	char *code_filename = (char*) filename;
 	char *data_filename = (char*) filename;
+	char *config_filename = (char*) filename;
 	char default_data_filename[] = "eeprom.bin";
+	char default_config_filename[] = "fuses.conf";
 
 	minipro_begin_transaction(handle); // Prevent device from hanging
 	switch(cmdopts.page) {
 		case UNSPECIFIED:
 			data_filename = default_data_filename;
+			config_filename = default_config_filename;
 		case CODE:
 			read_page_file(handle, code_filename, MP_READ_CODE, "Code", device->code_memory_size);
 			if(cmdopts.page) break;
 		case DATA:
 			if(device->data_memory_size) {
 				read_page_file(handle, data_filename, MP_READ_DATA, "Data", device->data_memory_size);
+			}
+			if(cmdopts.page) break;
+		case CONFIG:
+			if(device->fuses) {
+				read_fuses(handle, config_filename, device->fuses);
 			}
 			break;
 	}
@@ -279,6 +363,11 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 		case DATA:
 			write_page_file(handle, filename, MP_WRITE_DATA, "Data", device->data_memory_size);
 			verify_page_file(handle, filename, MP_READ_DATA, "Data", device->data_memory_size);
+			break;
+		case CONFIG:
+			if(device->fuses) {
+				write_fuses(handle, filename, device->fuses);
+			}
 			break;
 	}
 	minipro_end_transaction(handle); // Let prepare_writing() to make an effect
@@ -311,6 +400,17 @@ int main(int argc, char **argv) {
 			ERROR2("Invalid Chip ID: expected 0x%02x, got 0x%02x\n", device->chip_id, chip_id);
 		}		
 		minipro_end_transaction(handle);
+	}
+
+	/* TODO: put in devices.h and remove this stub */
+	switch(device->protocol_id) {
+		case 0x71:
+			device->fuses = avr_fuses;
+			break;
+		case 0x63:
+		case 0x65:
+			device->fuses = pic_fuses;
+			break;
 	}
 
 	cmdopts.action(cmdopts.filename, handle, device);

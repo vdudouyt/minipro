@@ -52,7 +52,7 @@ static void msg_init(char *out_buf, char cmd, device_t *device) {
 static unsigned int msg_transfer(minipro_handle_t *handle, char *buf, unsigned int length, int direction) {
 	int bytes_transferred;
 	libusb_bulk_transfer(handle->usb_handle, (1 | direction), buf, length, &bytes_transferred, 0);
-	if(bytes_transferred != length) ERROR("IO error");
+	if(bytes_transferred != length) ERROR2("IO error: expected %d bytes but %d bytes transferred\n", length, bytes_transferred);
 	return bytes_transferred;
 }
 
@@ -114,6 +114,46 @@ int minipro_get_chip_id(minipro_handle_t *handle) {
 	msg_recv(handle, msg, 5 + handle->device->chip_id_bytes_count);
 
 	return(load_int(&(msg[2]), handle->device->chip_id_bytes_count, MP_BIG_ENDIAN));
+}
+
+void minipro_read_fuses(minipro_handle_t *handle, unsigned int type, unsigned int length, char *buf) {
+	msg_init(msg, type, handle->device);
+	msg[2] = 0x01;
+	msg[5] = 0x10;
+	msg_send(handle, msg, 18);
+	msg_recv(handle, msg, 7 + length);
+	memcpy(buf, &(msg[7]), length);
+}
+
+void minipro_write_fuses(minipro_handle_t *handle, unsigned int type, unsigned int length, char *buf) {
+	// Perform actual writing
+	switch(type & 0xf0) {
+		case 0x10:
+			msg_init(msg, type + 1, handle->device);
+			msg[2] = 0x01;
+			msg[4] = 0xc8;
+			msg[5] = 0x0f;
+			msg[6] = 0x00;
+			memcpy(&(msg[7]), buf, length);
+			msg_send(handle, msg, 64);
+			break;
+		case 0x40:
+			msg_init(msg, type - 1, handle->device);
+			memcpy(&(msg[7]), buf, length);
+			msg_send(handle, msg, 10);
+			break;
+	}
+
+	// The device waits us to get the status now
+	msg_init(msg, type, handle->device);
+	msg[2] = 0x01;
+	memcpy(&(msg[7]), buf, length);
+	msg_send(handle, msg, 18);
+	msg_recv(handle, msg, 7 + length);
+
+	if(memcmp(buf, &(msg[7]), length)) {
+		ERROR("Failed while writing config bytes");
+	}
 }
 
 int minipro_get_system_info(minipro_handle_t *handle, minipro_system_info_t *out) {

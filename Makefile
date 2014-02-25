@@ -1,4 +1,4 @@
-COMMON_OBJECTS=byte_utils.o database.o minipro.o
+COMMON_OBJECTS=byte_utils.o database.o minipro.o fuses.o easyconfig.o
 OBJECTS=$(COMMON_OBJECTS) main.o minipro-query-db.o
 PROGS=minipro minipro-query-db
 MINIPRO=minipro
