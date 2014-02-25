@@ -1,0 +1,31 @@
+#!/bin/bash
+
+_minipro () {
+	COMPREPLY=()
+	local cur="${COMP_WORDS[COMP_CWORD]}"
+	local prev=${COMP_WORDS[COMP_CWORD-1]}
+
+	if [ "$prev" = "-p" ] && [ "$cur" != "" ]
+	then
+		TXT=$(minipro-query-db -s $cur)
+		COMPREPLY=( 	$(compgen -W '$TXT' -- ${cur}) )
+		return 0
+	fi
+
+	if [ "$prev" = "-c" ]
+	then
+		TXT="code data config"
+		COMPREPLY=( 	$(compgen -W '$TXT' -- ${cur}) )
+		return 0
+	fi
+
+	if [ "$prev" = "-r" ] || [ "$prev" = "-w" ]
+	then
+		_filedir
+		return 0
+	fi
+
+	COMPREPLY=( 	$(compgen -W 'r -w -p -c -i' -- ${cur}) )
+}
+
+complete -F _minipro minipro

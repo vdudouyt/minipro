@@ -8,7 +8,7 @@
 #include "error.h"
 
 void print_help_and_exit(const char *progname) {
-	fprintf(stderr, "Usage: %s <device>\n", progname);
+	fprintf(stderr, "Usage: %s [-s search] [<device>]\n", progname);
 	exit(-1);
 }
 
@@ -64,8 +64,22 @@ void print_device_info(device_t *device) {
 }
 
 int main(int argc, char **argv) {
-	if(argc != 2) {
+	if(argc < 2) {
 		print_help_and_exit(argv[0]);
+	}
+
+	if(!strcmp(argv[1], "-s")) {
+		if(argc < 3) {
+			print_help_and_exit(argv[0]);
+		}
+		// Listing all devices that starts with argv[2]
+		device_t *device;
+		for(device = &(devices[0]); device[0].name; device = &(device[1])) {
+			if(!strncmp(device[0].name, argv[2], strlen(argv[2]))) {
+				printf("%s\n", device[0].name);
+			}
+		}
+		return(0);
 	}
 
 	device_t *device = get_device_by_name(argv[1]);
