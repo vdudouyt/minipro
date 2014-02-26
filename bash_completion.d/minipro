@@ -28,4 +28,17 @@ _minipro () {
 	COMPREPLY=( 	$(compgen -W 'r -w -p -c -i' -- ${cur}) )
 }
 
+_minipro_query_db () {
+	COMPREPLY=()
+	local cur="${COMP_WORDS[COMP_CWORD]}"
+	if [ "$cur" != "" ]
+	then
+		local cur="${COMP_WORDS[COMP_CWORD]}"
+		TXT=$(minipro-query-db -s $cur)
+		COMPREPLY=( 	$(compgen -W '$TXT' -- ${cur}) )
+		return 0
+	fi
+}
+
 complete -F _minipro minipro
+complete -F _minipro_query_db minipro-query-db
