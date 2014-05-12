@@ -138,7 +138,7 @@ void Config_set_str(const char *par_name, const char *value) {
 int Config_get_int(const char *par_name) {
 	unsigned int intval;
 	char *strval = Config_get_str(par_name);
-	if(!sscanf(strval, "0x%02x", &intval) && !sscanf(strval, "%d", &intval)) {
+	if(!sscanf(strval, "0x%04x", &intval) && !sscanf(strval, "%d", &intval)) {
 		return 0;
 	}
 	return(intval);
@@ -146,7 +146,7 @@ int Config_get_int(const char *par_name) {
 
 void Config_set_int(const char *par_name, unsigned int value) {
 	char strval[16];
-	sprintf(strval, "0x%02x", value);
+	sprintf(strval, "0x%04x", value);
 	Config_set_str(par_name, strval);
 }
 
