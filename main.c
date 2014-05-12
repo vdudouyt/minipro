@@ -16,13 +16,14 @@ struct {
 	char *filename;
 	device_t *device;
 	enum { UNSPECIFIED = 0, CODE, DATA, CONFIG } page;
+        int erase;
 } cmdopts;
 
 void print_help_and_exit(const char *progname) {
 	char usage[] = 
 		"Usage: %s [options]\n"
 		"options:\n"
-		"	-r <filename>	Read memory\n"
+		"	-e 		Do NOT erase device\n"
 		"	-w <filename>	Write memory\n"
 		"	-p <device>	Specify device\n"
 		"	-c <type>	Specify memory type (optional)\n"
@@ -57,8 +58,12 @@ void parse_cmdline(int argc, char **argv) {
 		print_help_and_exit(argv[0]);
 	}
 
-	while((c = getopt(argc, argv, "r:w:p:c:")) != -1) {
+	while((c = getopt(argc, argv, "er:w:p:c:")) != -1) {
 		switch(c) {
+		        case 'e':
+			  cmdopts.erase=1;  // 1= do not erase
+			  break;
+			  
 			case 'p':
 				if(!strcmp(optarg, "help"))
 					print_devices_and_exit();
@@ -340,7 +345,7 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 			}
 			break;
 	}
-	minipro_end_transaction(handle); // Let prepare_writing() to make an effect
+	minipro_end_transaction(handle); 
 }
 
 void action_write(const char *filename, minipro_handle_t *handle, device_t *device) {
@@ -348,8 +353,11 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 		ERROR("File is too large");
 	}
 	minipro_begin_transaction(handle);
-	minipro_prepare_writing(handle);
-	minipro_end_transaction(handle); // Let prepare_writing() to take an effect
+	if (cmdopts.erase==0)
+	  {
+		minipro_prepare_writing(handle);
+		minipro_end_transaction(handle); // Let prepare_writing() to take an effect
+	  }
 
 	minipro_begin_transaction(handle);
 	minipro_get_status(handle);
