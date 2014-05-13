@@ -23,8 +23,9 @@ void print_help_and_exit(const char *progname) {
 	char usage[] = 
 		"Usage: %s [options]\n"
 		"options:\n"
-		"	-e 		Do NOT erase device\n"
+		"	-r <filename>	Read memory\n"
 		"	-w <filename>	Write memory\n"
+		"	-e 		Do NOT erase device\n"
 		"	-p <device>	Specify device\n"
 		"	-c <type>	Specify memory type (optional)\n"
 		"			Possible values: code, data, config\n"
