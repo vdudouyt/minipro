@@ -118,10 +118,10 @@ int minipro_get_chip_id(minipro_handle_t *handle) {
 
 void minipro_read_fuses(minipro_handle_t *handle, unsigned int type, unsigned int length, char *buf) {
 	msg_init(msg, type, handle->device);
-	msg[2] = 0x01;
-	msg[5] = 0x10;
+	msg[2]=(type==18 && length==4)?2:1;  // note that PICs with 1 config word will show length==2
+	msg[5]=0x10;
 	msg_send(handle, msg, 18);
-	msg_recv(handle, msg, 7 + length);
+	msg_recv(handle, msg, 7 + length );
 	memcpy(buf, &(msg[7]), length);
 }
 
@@ -130,24 +130,27 @@ void minipro_write_fuses(minipro_handle_t *handle, unsigned int type, unsigned i
 	switch(type & 0xf0) {
 		case 0x10:
 			msg_init(msg, type + 1, handle->device);
-			msg[2] = 0x01;
+			msg[2] = (length==4)?0x02:0x01;  // 2 fuse PICs have len=8
 			msg[4] = 0xc8;
 			msg[5] = 0x0f;
 			msg[6] = 0x00;
 			memcpy(&(msg[7]), buf, length);
+
 			msg_send(handle, msg, 64);
 			break;
 		case 0x40:
 			msg_init(msg, type - 1, handle->device);
 			memcpy(&(msg[7]), buf, length);
+
 			msg_send(handle, msg, 10);
 			break;
 	}
 
 	// The device waits us to get the status now
 	msg_init(msg, type, handle->device);
-	msg[2] = 0x01;
+	msg[2]=(type==18 && length==4)?2:1;  // note that PICs with 1 config word will show length==2
 	memcpy(&(msg[7]), buf, length);
+	
 	msg_send(handle, msg, 18);
 	msg_recv(handle, msg, 7 + length);
 
