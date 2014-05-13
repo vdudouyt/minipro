@@ -1,0 +1,134 @@
+#!/bin/bash
+if [ $# == 0 ]
+then
+   cat << EOF
+miniprohex by Al Williams http://www.awce.com
+Usage:
+  miniprohex [--o offset] [--unfill byte size] [--obs blksize] [--line-length length] [minipro_options] -r filename.ext
+  miniprohex [--o offset] [minirpo_options] -w filename.ext
+
+This calls minipro after converting known file types to 
+.bin for writing or converting bin files after reading.
+
+--o: Offset for file conversion (see srec_cat)
+--unfill: Unfil blocks of at least size of byte (see srec_cat)
+--obs: Output block size (see srec_cat)
+--line-length: Output line length max (see srec_cat)
+
+Assumes minipro and srec_cat are on the path.
+
+Here's the minipro help:
+EOF
+exec minipro
+fi
+
+# Options for minipro
+OPTS=
+# The -r or -w
+RWOPT=
+# Real file name
+FN=
+# Extension provided
+EXT=
+# Options for srec_copy
+SRECOPTS=
+# Place to put stuff
+TMPDIR=/tmp
+
+# parse arguments and sort them out
+while [ $# != 0 ]
+do
+# note --obs x becomes --obs=x
+  if [ "$1" == "--obs" ]
+  then
+      SRECOPTS="$SRECOPTS $1=$2"
+      shift
+      shift
+      continue
+  fi
+# note --line-length x becomes --line-length=x
+  if [ "$1" == "--line-length" ]
+  then
+      SRECOPTS="$SRECOPTS $1=$2"
+  fi
+  if [ "$1" == "--unfill" ]
+  then
+      SRECOPTS="$SRECOPTS $1 $2 $3"
+      shift
+      shift
+      shift
+      continue
+  fi
+  if [ "$1" == "--offset" ] 
+  then
+      SRECOPTS="$SRECOPTS $1 $2"
+      shift
+      shift
+      continue
+  fi
+  if [ "$1" == "-r" ] 
+  then
+    RWOPT=-r
+    shift
+    FN=$1
+  elif [ "$1" == "-w" ]
+  then
+    RWOPT=-w
+    shift
+    FN=$1
+  else
+    OPTS="$OPTS $1"
+  fi
+  shift
+done
+# Pick apart file name
+filename=$(basename "$FN")
+extension="${filename##*.}"
+fileprefix="${filename%.*}"
+
+# for each case decide the real file name (RFILE)
+# and what you have to do before or after
+# to get the right answer
+case "$extension" in
+.bin)
+# no conversion needed
+RFILE="$FN"
+PRECVT=
+POSTCVT=
+;;
+hex)
+RFILE="$TMPDIR/$$.bin"
+PRECVT="srec_cat $FN --intel -o $SRECOPT $RFILE --binary"
+POSTCVT="srec_cat $RFILE --binary $SRECOPTS -o $FN --intel"
+;;
+srec)
+RFILE=$TMPDIR/$$.bin
+PRECVT="srec_cat $FN --motorola -o $SRECOPT $RFILE --binary"
+POSTCVT="srec_cat $RFILE --binary $SRECOPTS -o $FN --motorola"
+;;
+txt)
+# assume fuse and just go for it
+RFILE="$FN"
+PRECVT=
+POSTCVT=
+;;
+*) 
+# Who knows?
+RFILE="$FN"
+PRECVT=
+POSTCVT=
+esac
+# If we write, do PRECMD and execute
+if [ $RWOPT == -w ]
+then
+$PRECVT
+minipro $OPTS $RWOPT $RFILE
+else
+# If reading, execute and then do post cmd
+minipro $OPTS $RWOPT $RFILE
+$POSTCVT
+fi
+
+
+
+
