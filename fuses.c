@@ -17,3 +17,13 @@ fuse_decl_t pic_fuses[] = {
 	{ .name = "conf_word", .minipro_cmd = 0x12, .length = 2, .offset = 0 },
 	{ .name = NULL },
 };
+
+fuse_decl_t pic2_fuses[] = {
+	{ .name = "user_id0",  .minipro_cmd = 0x10, .length = 2, .offset = 0 },
+	{ .name = "user_id1",  .minipro_cmd = 0x10, .length = 2, .offset = 2 },
+	{ .name = "user_id2",  .minipro_cmd = 0x10, .length = 2, .offset = 4 },
+	{ .name = "user_id3",  .minipro_cmd = 0x10, .length = 2, .offset = 6 },
+	{ .name = "conf_word", .minipro_cmd = 0x12, .length = 2, .offset = 0 },
+	{ .name = "conf_word1", .minipro_cmd = 0x12, .length = 2, .offset = 2 },
+	{ .name = NULL },
+};

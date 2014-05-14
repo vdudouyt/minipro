@@ -416,6 +416,11 @@ int main(int argc, char **argv) {
 		case 0x71:
 			device->fuses = avr_fuses;
 			break;
+ 	        case 0x10063:   //  select 2 fuses
+		  device->fuses=pic2_fuses;
+		  device->protocol_id&=0xFFFF;
+		  break;
+		  
 		case 0x63:
 		case 0x65:
 			device->fuses = pic_fuses;
