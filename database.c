@@ -12,4 +12,5 @@ device_t *get_device_by_name(const char *name) {
 		if(!strcmp(name, device->name))
 			return(device);
 	}
+	return NULL;
 }

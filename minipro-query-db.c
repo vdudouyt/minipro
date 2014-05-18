@@ -38,7 +38,7 @@ void print_device_info(device_t *device) {
 	}
 	printf("\n");
 
-	char package_details[4];
+	unsigned char package_details[4];
 	format_int(package_details, device->package_details, 4, MP_LITTLE_ENDIAN);
 	/* Package info */
 	printf("Package: ");

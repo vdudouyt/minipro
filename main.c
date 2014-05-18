@@ -108,7 +108,7 @@ int get_file_size(const char *filename) {
 	return(size);
 }
 
-int update_status(char *status_msg, char *fmt, ...) {
+void update_status(char *status_msg, char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	printf("\r\e[K%s", status_msg);
@@ -116,7 +116,7 @@ int update_status(char *status_msg, char *fmt, ...) {
 	fflush(stdout);
 }
 
-int compare_memory(char *buf1, char *buf2, int size, char *c1, char *c2) {
+int compare_memory(unsigned char *buf1, unsigned char *buf2, int size, unsigned char *c1, unsigned char *c2) {
 	int i;
 	for(i = 0; i < size; i++) {
 		if(buf1[i] != buf2[i]) {
@@ -129,7 +129,7 @@ int compare_memory(char *buf1, char *buf2, int size, char *c1, char *c2) {
 }
 
 /* RAM-centric IO operations */
-void read_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const char *name, int size) {
+void read_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int type, const char *name, int size) {
 	char status_msg[24];
 	sprintf(status_msg, "Reading %s... ", name);
 
@@ -153,7 +153,7 @@ void read_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const
 	update_status(status_msg, "OK\n");
 }
 
-void write_page_ram(minipro_handle_t *handle, char *buf, unsigned int type, const char *name, int size) {
+void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int type, const char *name, int size) {
 	char status_msg[24];
 	sprintf(status_msg, "Writing %s... ", name);
 
@@ -183,7 +183,7 @@ void read_page_file(minipro_handle_t *handle, const char *filename, unsigned int
 		PERROR("Couldn't open file for writing");
 	}
 
-	char *buf = malloc(size);
+	unsigned char *buf = malloc(size);
 	if(!buf) {
 		ERROR("Can't malloc");
 	}
@@ -201,7 +201,7 @@ void write_page_file(minipro_handle_t *handle, const char *filename, unsigned in
 		PERROR("Couldn't open file for reading");
 	}
 
-	char *buf = malloc(size);
+	unsigned char *buf = malloc(size);
 	if(!buf) {
 		ERROR("Can't malloc");
 	}
@@ -223,7 +223,7 @@ void read_fuses(minipro_handle_t *handle, const char *filename, fuse_decl_t *fus
 	minipro_begin_transaction(handle);
 	int i, d;
 	char data_length = 0, opcode = fuses[0].minipro_cmd;
-	char buf[11];
+	unsigned char buf[11];
 	for(i = 0; fuses[i].name; i++) {
 		data_length += fuses[i].length;
 		if(fuses[i].minipro_cmd < opcode) {
@@ -260,7 +260,7 @@ void write_fuses(minipro_handle_t *handle, const char *filename, fuse_decl_t *fu
 	minipro_begin_transaction(handle);
 	int i, d;
 	char data_length = 0, opcode = fuses[0].minipro_cmd;
-	char buf[11];
+	unsigned char buf[11];
 	for(i = 0; fuses[i].name; i++) {
 		data_length += fuses[i].length;
 		if(fuses[i].minipro_cmd < opcode) {
@@ -294,14 +294,14 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 
 	/* Loading file */
 	int file_size = get_file_size(filename);
-	char *file_data = malloc(file_size);
+	unsigned char *file_data = malloc(file_size);
 	fread(file_data, 1, file_size, file);
 	fclose(file);
 
 	minipro_begin_transaction(handle);
 
 	/* Downloading data from chip*/
-	char *chip_data = malloc(size);
+	unsigned char *chip_data = malloc(size);
 	read_page_ram(handle, chip_data, type, name, size);
 	unsigned char c1, c2;
 	int idx = compare_memory(file_data, chip_data, file_size, &c1, &c2);
