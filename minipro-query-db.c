@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include "minipro.h"
 #include "byte_utils.h"
@@ -75,7 +76,7 @@ int main(int argc, char **argv) {
 		// Listing all devices that starts with argv[2]
 		device_t *device;
 		for(device = &(devices[0]); device[0].name; device = &(device[1])) {
-			if(!strncmp(device[0].name, argv[2], strlen(argv[2]))) {
+			if(!strncasecmp(device[0].name, argv[2], strlen(argv[2]))) {
 				printf("%s\n", device[0].name);
 			}
 		}
