@@ -5,7 +5,7 @@ typedef struct fuse_decl {
 	const char *name;
 	char minipro_cmd;
 	char length;
-	char offset;
+	int offset;
 } fuse_decl_t;
 
 extern fuse_decl_t avr_fuses[];

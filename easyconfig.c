@@ -56,9 +56,8 @@ int Config_init(const char *path) {
 }
 
 int Config_open(const char *path) {
-	int a=0, ret=0, counter=0, counter1=1;
+	int ret=0, counter=0, counter1=1;
 	char temp[LINE_LENGTH], *result;
-	char* comment;
 
 	config_content = (struct conf*)calloc(1, sizeof(struct conf));
 	config_path = (char*) path;
@@ -117,7 +116,6 @@ char *Config_get_str(const char *par_name) {
 
 void Config_set_str(const char *par_name, const char *value) {
 	int i;
-	char line[LINE_LENGTH];
 
 	for (i=0;i<config_lines_qty;i++) { 
 		if (!strcmp(config_content[i].param_name,par_name)) {
