@@ -12,8 +12,12 @@ UDEV_RULES_DIR=$(DESTDIR)/usr/lib/udev/rules.d/
 MAN_DIR=$(DESTDIR)/usr/share/man/man1/
 COMPLETIONS_DIR=$(DESTDIR)/etc/bash_completion.d/
 
-override CFLAGS += `pkg-config --cflags libusb-1.0` -g -O0
-LIBS = `pkg-config --libs libusb-1.0`
+libusb_CFLAGS = `pkg-config --cflags libusb-1.0`
+libusb_LIBS = `pkg-config --libs libusb-1.0`
+
+CFLAGS = -g -O0
+override CFLAGS += $(libusb_CFLAGS)
+override LIBS += $(libusb_LIBS)
 
 all: $(OBJECTS) $(PROGS)
 
