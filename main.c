@@ -205,7 +205,9 @@ void write_page_file(minipro_handle_t *handle, const char *filename, unsigned in
 		ERROR("Can't malloc");
 	}
 
-	fread(buf, 1, size, file);
+	if (fread(buf, 1, size, file) != size) {
+		ERROR("Short read");
+	}
 	write_page_ram(handle, buf, type, name, size);
 
 	fclose(file);
@@ -294,7 +296,9 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	/* Loading file */
 	int file_size = get_file_size(filename);
 	unsigned char *file_data = malloc(file_size);
-	fread(file_data, 1, file_size, file);
+	if (fread(file_data, 1, file_size, file) != file_size) {
+		ERROR("Short read");
+	}
 	fclose(file);
 
 	minipro_begin_transaction(handle);
