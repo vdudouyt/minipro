@@ -52,7 +52,6 @@ void print_devices_and_exit() {
 
 void parse_cmdline(int argc, char **argv) {
 	char c;
-	char *cvalue;
 	memset(&cmdopts, 0, sizeof(cmdopts));
 
 	if(argc < 2) {
