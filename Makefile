@@ -8,7 +8,7 @@ TESTS=$(wildcard tests/test_*.c);
 OBJCOPY=objcopy
 
 BIN_DIR=$(DESTDIR)/usr/bin/
-UDEV_RULES_DIR=$(DESTDIR)/etc/udev/rules.d/
+UDEV_RULES_DIR=$(DESTDIR)/usr/lib/udev/rules.d/
 MAN_DIR=$(DESTDIR)/usr/share/man/man1/
 COMPLETIONS_DIR=$(DESTDIR)/etc/bash_completion.d/
 
