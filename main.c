@@ -17,6 +17,8 @@ struct {
 	device_t *device;
 	enum { UNSPECIFIED = 0, CODE, DATA, CONFIG } page;
         int erase;
+        int protect_off;
+        int protect_on;
 } cmdopts;
 
 void print_help_and_exit(const char *progname) {
@@ -26,6 +28,8 @@ void print_help_and_exit(const char *progname) {
 		"	-r <filename>	Read memory\n"
 		"	-w <filename>	Write memory\n"
 		"	-e 		Do NOT erase device\n"
+		"	-u 		Do NOT disable write-protect\n"
+		"	-P 		Do NOT enable write-protect\n"
 		"	-p <device>	Specify device\n"
 		"	-c <type>	Specify memory type (optional)\n"
 		"			Possible values: code, data, config\n"
@@ -58,10 +62,18 @@ void parse_cmdline(int argc, char **argv) {
 		print_help_and_exit(argv[0]);
 	}
 
-	while((c = getopt(argc, argv, "er:w:p:c:")) != -1) {
+	while((c = getopt(argc, argv, "euPr:w:p:c:")) != -1) {
 		switch(c) {
 		        case 'e':
 			  cmdopts.erase=1;  // 1= do not erase
+			  break;
+
+		        case 'u':
+			  cmdopts.protect_off=1;  // 1= do not disable write protect
+			  break;
+
+		        case 'P':
+			  cmdopts.protect_on=1;  // 1= do not enable write protect
 			  break;
 			  
 			case 'p':
@@ -365,6 +377,9 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 
 	minipro_begin_transaction(handle);
 	minipro_get_status(handle);
+	if (cmdopts.protect_off==0 && device->opts4 & 0xc000) {
+		minipro_protect_off(handle);
+	}
 
 	switch(cmdopts.page) {
 		case UNSPECIFIED:
@@ -383,6 +398,12 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 			break;
 	}
 	minipro_end_transaction(handle); // Let prepare_writing() to make an effect
+
+	if (cmdopts.protect_on==0 && device->opts4 & 0xc000) {
+		minipro_begin_transaction(handle);
+		minipro_protect_on(handle);
+		minipro_end_transaction(handle);
+	}
 }
 
 int main(int argc, char **argv) {

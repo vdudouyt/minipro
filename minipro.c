@@ -90,6 +90,18 @@ void minipro_end_transaction(minipro_handle_t *handle) {
 	msg_send(handle, msg, 4);
 }
 
+void minipro_protect_off(minipro_handle_t *handle) {
+	memset(msg, 0, sizeof(msg));
+	msg_init(msg, MP_PROTECT_OFF, handle->device);
+	msg_send(handle, msg, 10);
+}
+
+void minipro_protect_on(minipro_handle_t *handle) {
+	memset(msg, 0, sizeof(msg));
+	msg_init(msg, MP_PROTECT_ON, handle->device);
+	msg_send(handle, msg, 10);
+}
+
 int minipro_get_status(minipro_handle_t *handle) {
 	unsigned char buf[32];
 	msg_init(msg, MP_REQUEST_STATUS1_MSG2, handle->device);
