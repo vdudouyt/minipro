@@ -4,6 +4,7 @@ OBJECTS=$(COMMON_OBJECTS) main.o minipro-query-db.o
 PROGS=minipro minipro-query-db
 MINIPRO=minipro
 MINIPRO_QUERY_DB=minipro-query-db
+MINIPROHEX=miniprohex
 TESTS=$(wildcard tests/test_*.c);
 OBJCOPY=objcopy
 
@@ -37,6 +38,7 @@ install:
 	mkdir -p $(COMPLETIONS_DIR)
 	cp $(MINIPRO) $(BIN_DIR)
 	cp $(MINIPRO_QUERY_DB) $(BIN_DIR)
+	cp $(MINIPROHEX) $(BIN_DIR)
 	cp udev/rules.d/80-minipro.rules $(UDEV_RULES_DIR)
 	cp bash_completion.d/minipro $(COMPLETIONS_DIR)
 	cp man/minipro.1 $(MAN_DIR)
