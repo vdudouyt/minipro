@@ -115,20 +115,20 @@ int minipro_get_status(minipro_handle_t *handle) {
 	return(load_int(buf, 2, MP_LITTLE_ENDIAN));
 }
 
-void minipro_read_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf) {
+void minipro_read_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf, unsigned int len) {
 	msg_init(msg, type, handle->device);
-	format_int(&(msg[2]), handle->device->read_buffer_size, 2, MP_LITTLE_ENDIAN);
+	format_int(&(msg[2]), len, 2, MP_LITTLE_ENDIAN);
 	format_int(&(msg[4]), addr, 3, MP_LITTLE_ENDIAN);
 	msg_send(handle, msg, 18);
-	msg_recv(handle, buf, handle->device->read_buffer_size);
+	msg_recv(handle, buf, len);
 }
 
-void minipro_write_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf) {
+void minipro_write_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf, unsigned int len) {
 	msg_init(msg, type, handle->device);
-	format_int(&(msg[2]), handle->device->write_buffer_size, 2, MP_LITTLE_ENDIAN);
+	format_int(&(msg[2]), len, 2, MP_LITTLE_ENDIAN);
 	format_int(&(msg[4]), addr, 3, MP_LITTLE_ENDIAN);
-	memcpy(&(msg[7]), buf, handle->device->write_buffer_size);
-	msg_send(handle, msg, 7 + handle->device->write_buffer_size);
+	memcpy(&(msg[7]), buf, len);
+	msg_send(handle, msg, 7 + len);
 }
 
 /* Model-specific ID, e.g. AVR Device ID (not longer than 4 bytes) */
