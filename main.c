@@ -365,8 +365,18 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 }
 
 void action_write(const char *filename, minipro_handle_t *handle, device_t *device) {
-	if(get_file_size(filename) > device->code_memory_size) {
-		ERROR("File is too large");
+	switch(cmdopts.page) {
+		case UNSPECIFIED:
+		case CODE:
+			if(get_file_size(filename) != device->code_memory_size) {
+				ERROR2("Incorrect file size: %d (needed %d)\n", get_file_size(filename), device->code_memory_size);
+			}
+			break;
+		case DATA:
+			if(get_file_size(filename) != device->data_memory_size) {
+				ERROR2("Incorrect file size: %d (needed %d)\n", get_file_size(filename), device->data_memory_size);
+			}
+			break;
 	}
 	minipro_begin_transaction(handle);
 	if (cmdopts.erase==0)
