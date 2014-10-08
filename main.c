@@ -145,12 +145,12 @@ void read_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int ty
 	sprintf(status_msg, "Reading %s... ", name);
 
 	device_t *device = handle->device;
+	int blocks_count = size / device->read_buffer_size;
 	if(size % device->read_buffer_size != 0) {
-		ERROR2("Wrong page size: %d bytes", size);
+		blocks_count++;
 	}
 
 	int i;
-	int blocks_count = size / device->read_buffer_size;
 	for(i = 0; i < blocks_count; i++) {
 		update_status(status_msg, "%2d%%", i * 100 / blocks_count);
 		// Translating address to protocol-specific
@@ -158,7 +158,11 @@ void read_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int ty
 		if(device->opts4 & 0x2000) {
 			addr = addr >> 1;
 		}
-		minipro_read_block(handle, type, addr, buf + i * device->read_buffer_size);
+		int len = device->read_buffer_size;
+		// Last block
+		if ((i + 1) * len > size)
+			len = size % len;
+		minipro_read_block(handle, type, addr, buf + i * device->read_buffer_size, len);
 	}
 
 	update_status(status_msg, "OK\n");
@@ -169,12 +173,13 @@ void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int t
 	sprintf(status_msg, "Writing %s... ", name);
 
 	device_t *device = handle->device;
-	if(size % device->write_buffer_size != 0) {
-		ERROR2("Wrong page size: %d bytes", size);
-	}
 	
-	int i;
 	int blocks_count = size / device->write_buffer_size;
+	if(size % device->read_buffer_size != 0) {
+		blocks_count++;
+	}
+
+	int i;
 	for(i = 0; i < blocks_count; i++) {
 		update_status(status_msg, "%2d%%", i * 100 / blocks_count);
 		// Translating address to protocol-specific
@@ -182,7 +187,11 @@ void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int t
 		if(device->opts4 & 0x2000) {
 			addr = addr >> 1;
 		}
-		minipro_write_block(handle, type, addr, buf + i * device->write_buffer_size);
+		int len = device->write_buffer_size;
+		// Last block
+		if ((i + 1) * len > size)
+			len = size % len;
+		minipro_write_block(handle, type, addr, buf + i * device->write_buffer_size, len);
 	}
 	update_status(status_msg, "OK\n");
 }
@@ -365,8 +374,18 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 }
 
 void action_write(const char *filename, minipro_handle_t *handle, device_t *device) {
-	if(get_file_size(filename) > device->code_memory_size) {
-		ERROR("File is too large");
+	switch(cmdopts.page) {
+		case UNSPECIFIED:
+		case CODE:
+			if(get_file_size(filename) != device->code_memory_size) {
+				ERROR2("Incorrect file size: %d (needed %d)\n", get_file_size(filename), device->code_memory_size);
+			}
+			break;
+		case DATA:
+			if(get_file_size(filename) != device->data_memory_size) {
+				ERROR2("Incorrect file size: %d (needed %d)\n", get_file_size(filename), device->data_memory_size);
+			}
+			break;
 	}
 	minipro_begin_transaction(handle);
 	if (cmdopts.erase==0)

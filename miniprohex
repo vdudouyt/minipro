@@ -30,10 +30,8 @@ RWOPT=
 FN=
 # Extension provided
 EXT=
-# Options for srec_copy
+# Options for srec_cat
 SRECOPTS=
-# Place to put stuff
-TMPDIR=/tmp
 
 # parse arguments and sort them out
 while [ $# != 0 ]
@@ -97,12 +95,12 @@ PRECVT=
 POSTCVT=
 ;;
 hex)
-RFILE="$TMPDIR/$$.bin"
+RFILE="$(mktemp)"
 PRECVT="srec_cat $FN --intel -o $SRECOPT $RFILE --binary"
 POSTCVT="srec_cat $RFILE --binary $SRECOPTS -o $FN --intel"
 ;;
 srec)
-RFILE=$TMPDIR/$$.bin
+RFILE="$(mktemp)"
 PRECVT="srec_cat $FN --motorola -o $SRECOPT $RFILE --binary"
 POSTCVT="srec_cat $RFILE --binary $SRECOPTS -o $FN --motorola"
 ;;
@@ -129,6 +127,5 @@ minipro $OPTS $RWOPT $RFILE
 $POSTCVT
 fi
 
-
-
-
+# Purge the temporary file if we used one
+[ "$PRECVT" ] && rm "$RFILE"
