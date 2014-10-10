@@ -6,13 +6,13 @@ minipro \- flash various chips with Minipro TL866XX series of programmers from a
 .RB [-p " device"]
 .RB [-c " code|data|config"]
 .RB [-r|-w " filename"]
-.RB [-e] [-u] [-P] [-i]
+.RB [-e] [-u] [-P] [-i|-I]
 
 .B miniprohex
 .RB [-p " device"]
 .RB [-c " code|data|config"]
 .RB [-r|-w " filename"]
-.RB [-e] [-u] [-P] [-i]
+.RB [-e] [-u] [-P] [-i|-I]
 
 If
 .B -c
@@ -28,7 +28,9 @@ is getting enforced.
 
 The
 .B -i
-option enables use of ICSP port for TL866A models.
+and
+.B -I
+options enable use of ICSP port for TL866A models. The former enables the voltage supply on the Vcc pin of the ICSP port while the latter leaves it off.
 
 .SH DESCRIPTION
 .I minipro

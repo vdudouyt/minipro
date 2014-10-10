@@ -35,6 +35,7 @@ void print_help_and_exit(const char *progname) {
 		"	-c <type>	Specify memory type (optional)\n"
 		"			Possible values: code, data, config\n"
 		"	-i		Use ICSP\n";
+		"	-I		Use ICSP (without enabling Vcc)\n";
 	fprintf(stderr, usage, progname);
 	exit(-1);
 }
@@ -63,7 +64,7 @@ void parse_cmdline(int argc, char **argv) {
 		print_help_and_exit(argv[0]);
 	}
 
-	while((c = getopt(argc, argv, "euPr:w:p:c:i")) != -1) {
+	while((c = getopt(argc, argv, "euPr:w:p:c:iI")) != -1) {
 		switch(c) {
 		        case 'e':
 			  cmdopts.erase=1;  // 1= do not erase
@@ -105,6 +106,9 @@ void parse_cmdline(int argc, char **argv) {
 
 		        case 'i':
 				cmdopts.icsp = MP_ICSP_ENABLE | MP_ICSP_VCC;
+				break;
+		        case 'I':
+				cmdopts.icsp = MP_ICSP_ENABLE;
 				break;
 		}
 	}
