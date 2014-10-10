@@ -26,6 +26,9 @@
 #define MP_PROTECT_OFF 0x44
 #define MP_PROTECT_ON 0x45
 
+#define MP_ICSP_ENABLE 0x80
+#define MP_ICSP_VCC 0x01
+
 #define MAX_READ_BUFFER_SIZE 0x400
 #define MAX_WRITE_BUFFER_SIZE 0x210
 
@@ -43,6 +46,7 @@ typedef struct minipro_handle {
 	libusb_device_handle *usb_handle;
 	libusb_context *ctx;
 	device_t *device;
+	int icsp;
 } minipro_handle_t;
 
 minipro_handle_t *minipro_open(device_t *device);
