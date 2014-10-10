@@ -48,10 +48,10 @@ static void msg_init(unsigned char *out_buf, unsigned char cmd, device_t *device
 	out_buf[3] = 0x00;
 	out_buf[4] = device->data_memory_size >> 8 & 0xFF;
 
-	format_int(&(msg[5]), device->opts1, 2, MP_LITTLE_ENDIAN);
-	msg[8] = msg[6];
-	format_int(&(msg[6]), device->opts2, 2, MP_LITTLE_ENDIAN);
-	format_int(&(msg[9]), device->opts3, 2, MP_LITTLE_ENDIAN);
+	format_int(&(out_buf[5]), device->opts1, 2, MP_LITTLE_ENDIAN);
+	out_buf[8] = out_buf[6];
+	format_int(&(out_buf[6]), device->opts2, 2, MP_LITTLE_ENDIAN);
+	format_int(&(out_buf[9]), device->opts3, 2, MP_LITTLE_ENDIAN);
 
 }
 
