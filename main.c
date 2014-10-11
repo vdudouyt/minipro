@@ -395,6 +395,8 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 				ERROR2("Incorrect file size: %d (needed %d)\n", get_file_size(filename), device->data_memory_size);
 			}
 			break;
+		case CONFIG:
+			break;
 	}
 	minipro_begin_transaction(handle);
 	if (cmdopts.erase==0)
