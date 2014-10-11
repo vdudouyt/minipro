@@ -19,6 +19,7 @@ struct {
         int erase;
         int protect_off;
         int protect_on;
+        int icsp;
 } cmdopts;
 
 void print_help_and_exit(const char *progname) {
@@ -33,7 +34,8 @@ void print_help_and_exit(const char *progname) {
 		"	-p <device>	Specify device\n"
 		"	-c <type>	Specify memory type (optional)\n"
 		"			Possible values: code, data, config\n"
-		"	-i		Use ISP\n";
+		"	-i		Use ICSP\n";
+		"	-I		Use ICSP (without enabling Vcc)\n";
 	fprintf(stderr, usage, progname);
 	exit(-1);
 }
@@ -62,7 +64,7 @@ void parse_cmdline(int argc, char **argv) {
 		print_help_and_exit(argv[0]);
 	}
 
-	while((c = getopt(argc, argv, "euPr:w:p:c:")) != -1) {
+	while((c = getopt(argc, argv, "euPr:w:p:c:iI")) != -1) {
 		switch(c) {
 		        case 'e':
 			  cmdopts.erase=1;  // 1= do not erase
@@ -100,6 +102,13 @@ void parse_cmdline(int argc, char **argv) {
 			case 'w':
 				cmdopts.action = action_write;
 				cmdopts.filename = optarg;
+				break;
+
+		        case 'i':
+				cmdopts.icsp = MP_ICSP_ENABLE | MP_ICSP_VCC;
+				break;
+		        case 'I':
+				cmdopts.icsp = MP_ICSP_ENABLE;
 				break;
 		}
 	}
@@ -436,6 +445,7 @@ int main(int argc, char **argv) {
 
 	device_t *device = cmdopts.device;
 	minipro_handle_t *handle = minipro_open(device);
+	handle->icsp = cmdopts.icsp;
 
 	// Printing system info
 	minipro_system_info_t info;
