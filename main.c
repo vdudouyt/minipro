@@ -34,7 +34,7 @@ void print_help_and_exit(const char *progname) {
 		"	-p <device>	Specify device\n"
 		"	-c <type>	Specify memory type (optional)\n"
 		"			Possible values: code, data, config\n"
-		"	-i		Use ICSP\n";
+		"	-i		Use ICSP\n"
 		"	-I		Use ICSP (without enabling Vcc)\n";
 	fprintf(stderr, usage, progname);
 	exit(-1);
@@ -394,6 +394,8 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 			if(get_file_size(filename) != device->data_memory_size) {
 				ERROR2("Incorrect file size: %d (needed %d)\n", get_file_size(filename), device->data_memory_size);
 			}
+			break;
+		case CONFIG:
 			break;
 	}
 	minipro_begin_transaction(handle);
