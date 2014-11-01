@@ -19,7 +19,8 @@ struct {
         int erase;
         int protect_off;
         int protect_on;
-        int size_err;
+        int size_error;
+        int icsp;
 } cmdopts;
 
 void print_help_and_exit(const char *progname) {
@@ -34,9 +35,9 @@ void print_help_and_exit(const char *progname) {
 		"	-p <device>	Specify device\n"
 		"	-c <type>	Specify memory type (optional)\n"
 		"			Possible values: code, data, config\n"
-	        "	-i		Use ISP\n"
+		"	-i		Use ICSP\n"
+		"	-I		Use ICSP (without enabling Vcc)\n"
                 "       -s		Error if file size does not match memory size\n";
-	
 	fprintf(stderr, usage, progname);
 	exit(-1);
 }
@@ -65,7 +66,7 @@ void parse_cmdline(int argc, char **argv) {
 		print_help_and_exit(argv[0]);
 	}
 
-	while((c = getopt(argc, argv, "euPr:w:p:c:")) != -1) {
+	while((c = getopt(argc, argv, "euPr:w:p:c:iIs")) != -1) {
 		switch(c) {
 		        case 'e':
 			  cmdopts.erase=1;  // 1= do not erase
@@ -105,10 +106,14 @@ void parse_cmdline(int argc, char **argv) {
 				cmdopts.filename = optarg;
 				break;
 		        case 's':
-			        cmdopts.size_err=1;
+			        cmdopts.size_error=1;
 				break;
-				
-			  
+		        case 'i':
+				cmdopts.icsp = MP_ICSP_ENABLE | MP_ICSP_VCC;
+				break;
+		        case 'I':
+				cmdopts.icsp = MP_ICSP_ENABLE;
+				break;
 		}
 	}
 }
@@ -153,12 +158,12 @@ void read_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int ty
 	sprintf(status_msg, "Reading %s... ", name);
 
 	device_t *device = handle->device;
+	int blocks_count = size / device->read_buffer_size;
 	if(size % device->read_buffer_size != 0) {
-		ERROR2("Wrong page size: %d bytes", size);
+		blocks_count++;
 	}
 
 	int i;
-	int blocks_count = size / device->read_buffer_size;
 	for(i = 0; i < blocks_count; i++) {
 		update_status(status_msg, "%2d%%", i * 100 / blocks_count);
 		// Translating address to protocol-specific
@@ -166,7 +171,11 @@ void read_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int ty
 		if(device->opts4 & 0x2000) {
 			addr = addr >> 1;
 		}
-		minipro_read_block(handle, type, addr, buf + i * device->read_buffer_size);
+		int len = device->read_buffer_size;
+		// Last block
+		if ((i + 1) * len > size)
+			len = size % len;
+		minipro_read_block(handle, type, addr, buf + i * device->read_buffer_size, len);
 	}
 
 	update_status(status_msg, "OK\n");
@@ -177,12 +186,13 @@ void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int t
 	sprintf(status_msg, "Writing %s... ", name);
 
 	device_t *device = handle->device;
-	if(size % device->write_buffer_size != 0) {
-		ERROR2("Wrong page size: %d bytes", size);
-	}
 	
-	int i;
 	int blocks_count = size / device->write_buffer_size;
+	if(size % device->read_buffer_size != 0) {
+		blocks_count++;
+	}
+
+	int i;
 	for(i = 0; i < blocks_count; i++) {
 		update_status(status_msg, "%2d%%", i * 100 / blocks_count);
 		// Translating address to protocol-specific
@@ -190,7 +200,11 @@ void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int t
 		if(device->opts4 & 0x2000) {
 			addr = addr >> 1;
 		}
-		minipro_write_block(handle, type, addr, buf + i * device->write_buffer_size);
+		int len = device->write_buffer_size;
+		// Last block
+		if ((i + 1) * len > size)
+			len = size % len;
+		minipro_write_block(handle, type, addr, buf + i * device->write_buffer_size, len);
 	}
 	update_status(status_msg, "OK\n");
 }
@@ -215,7 +229,6 @@ void read_page_file(minipro_handle_t *handle, const char *filename, unsigned int
 }
 
 void write_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
-        int fsize;
 	FILE *file = fopen(filename, "r");
 	if(file == NULL) {
 		PERROR("Couldn't open file for reading");
@@ -226,13 +239,9 @@ void write_page_file(minipro_handle_t *handle, const char *filename, unsigned in
 		ERROR("Can't malloc");
 	}
 
-	if ((fsize=fread(buf, 1, size, file)) != size) {
- 	  if (cmdopts.size_err)
-  	       ERROR("Short read");
-  	  else
-		printf("Warning: File shorter than device memory\n");
-	}
-	write_page_ram(handle, buf, type, name, fsize);
+	// we already checked filesize going into write
+	fread(buf, 1, size, file);
+	write_page_ram(handle, buf, type, name, size);
 	fclose(file);
 	free(buf);
 }
@@ -320,19 +329,15 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	/* Loading file */
 	int file_size = get_file_size(filename);
 	unsigned char *file_data = malloc(file_size);
-	if (fread(file_data, 1, file_size, file) != file_size) {
-	  if (cmdopts.size_err)
-	    ERROR("Short read");
-	  else
-	    printf("Warning: File shorter than device memory (on verify)\n");
-	}
+	// already checked file size
+	fread(file_data, 1, file_size, file);
 	fclose(file);
 
 	minipro_begin_transaction(handle);
 
 	/* Downloading data from chip*/
 	unsigned char *chip_data = malloc(fsize);
-	read_page_ram(handle, chip_data, type, name, fsize);
+	read_page_ram(handle, chip_data, type, name, size);
 	unsigned char c1, c2;
 	int idx = compare_memory(file_data, chip_data, file_size, &c1, &c2);
 
@@ -380,8 +385,29 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 }
 
 void action_write(const char *filename, minipro_handle_t *handle, device_t *device) {
-	if(get_file_size(filename) > device->code_memory_size) {
-		ERROR("File is too large");
+        int fsize;
+	switch(cmdopts.page) {
+		case UNSPECIFIED:
+		case CODE:
+		  fsize=get_file_size(filename);
+		  if (fsize != device->code_memory_size) {
+		    if (cmdopts.size_error)
+		      ERROR2("Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
+		    else
+		      printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
+	          }
+		  break;
+		case DATA:
+		  fsize=get_file_size(filename);
+		  if (fsize != device->data_memory_size) {
+		    if (cmdopts.size_error)
+		      ERROR2("Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
+		    else
+		      printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
+	          }
+			break;
+		case CONFIG:
+			break;
 	}
 	minipro_begin_transaction(handle);
 	if (cmdopts.erase==0)
@@ -432,6 +458,7 @@ int main(int argc, char **argv) {
 
 	device_t *device = cmdopts.device;
 	minipro_handle_t *handle = minipro_open(device);
+	handle->icsp = cmdopts.icsp;
 
 	// Printing system info
 	minipro_system_info_t info;
