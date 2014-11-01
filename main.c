@@ -37,7 +37,7 @@ void print_help_and_exit(const char *progname) {
 		"			Possible values: code, data, config\n"
 		"	-i		Use ICSP\n"
 		"	-I		Use ICSP (without enabling Vcc)\n"
-                "       -s		Error if file size does not match memory size\n";
+		"	-s		Error if file size does not match memory size\n";
 	fprintf(stderr, usage, progname);
 	exit(-1);
 }
