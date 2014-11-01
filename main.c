@@ -34,8 +34,8 @@ void print_help_and_exit(const char *progname) {
 		"	-p <device>	Specify device\n"
 		"	-c <type>	Specify memory type (optional)\n"
 		"			Possible values: code, data, config\n"
-	  "	-i		Use ISP\n"
-	  "       -s		Error if file size does not match memory size\n";
+	        "	-i		Use ISP\n"
+                "       -s		Error if file size does not match memory size\n";
 	
 	fprintf(stderr, usage, progname);
 	exit(-1);
