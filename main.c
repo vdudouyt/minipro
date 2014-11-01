@@ -19,6 +19,7 @@ struct {
         int erase;
         int protect_off;
         int protect_on;
+        int size_err;
 } cmdopts;
 
 void print_help_and_exit(const char *progname) {
@@ -33,7 +34,9 @@ void print_help_and_exit(const char *progname) {
 		"	-p <device>	Specify device\n"
 		"	-c <type>	Specify memory type (optional)\n"
 		"			Possible values: code, data, config\n"
-		"	-i		Use ISP\n";
+	  "	-i		Use ISP\n"
+	  "       -s		Error if file size does not match memory size\n";
+	
 	fprintf(stderr, usage, progname);
 	exit(-1);
 }
@@ -101,6 +104,11 @@ void parse_cmdline(int argc, char **argv) {
 				cmdopts.action = action_write;
 				cmdopts.filename = optarg;
 				break;
+		        case 's':
+			        cmdopts.size_err=1;
+				break;
+				
+			  
 		}
 	}
 }
@@ -207,6 +215,7 @@ void read_page_file(minipro_handle_t *handle, const char *filename, unsigned int
 }
 
 void write_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
+        int fsize;
 	FILE *file = fopen(filename, "r");
 	if(file == NULL) {
 		PERROR("Couldn't open file for reading");
@@ -217,11 +226,13 @@ void write_page_file(minipro_handle_t *handle, const char *filename, unsigned in
 		ERROR("Can't malloc");
 	}
 
-	if (fread(buf, 1, size, file) != size) {
-		ERROR("Short read");
+	if ((fsize=fread(buf, 1, size, file)) != size) {
+ 	  if (cmdopts.size_err)
+  	       ERROR("Short read");
+  	  else
+		printf("Warning: File shorter than device memory\n");
 	}
-	write_page_ram(handle, buf, type, name, size);
-
+	write_page_ram(handle, buf, type, name, fsize);
 	fclose(file);
 	free(buf);
 }
@@ -300,6 +311,7 @@ void write_fuses(minipro_handle_t *handle, const char *filename, fuse_decl_t *fu
 }
 
 void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
+        int fsize;
 	FILE *file = fopen(filename, "r");
 	if(file == NULL) {
 		PERROR("Couldn't open file for reading");
@@ -309,15 +321,18 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	int file_size = get_file_size(filename);
 	unsigned char *file_data = malloc(file_size);
 	if (fread(file_data, 1, file_size, file) != file_size) {
-		ERROR("Short read");
+	  if (cmdopts.size_err)
+	    ERROR("Short read");
+	  else
+	    printf("Warning: File shorter than device memory (on verify)\n");
 	}
 	fclose(file);
 
 	minipro_begin_transaction(handle);
 
 	/* Downloading data from chip*/
-	unsigned char *chip_data = malloc(size);
-	read_page_ram(handle, chip_data, type, name, size);
+	unsigned char *chip_data = malloc(fsize);
+	read_page_ram(handle, chip_data, type, name, fsize);
 	unsigned char c1, c2;
 	int idx = compare_memory(file_data, chip_data, file_size, &c1, &c2);
 
