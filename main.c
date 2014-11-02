@@ -20,6 +20,7 @@ struct {
         int protect_off;
         int protect_on;
         int size_error;
+        int size_nowarn;
         int icsp;
 } cmdopts;
 
@@ -37,7 +38,9 @@ void print_help_and_exit(const char *progname) {
 		"			Possible values: code, data, config\n"
 		"	-i		Use ICSP\n"
 		"	-I		Use ICSP (without enabling Vcc)\n"
-		"	-s		Error if file size does not match memory size\n";
+		"	-s		Error if file size does not match memory size\n"
+		"	-S		No warning message for file size mismatch (can't combine with -s)\n";
+	
 	fprintf(stderr, usage, progname);
 	exit(-1);
 }
@@ -66,7 +69,7 @@ void parse_cmdline(int argc, char **argv) {
 		print_help_and_exit(argv[0]);
 	}
 
-	while((c = getopt(argc, argv, "euPr:w:p:c:iIs")) != -1) {
+	while((c = getopt(argc, argv, "euPr:w:p:c:iIsS")) != -1) {
 		switch(c) {
 		        case 'e':
 			  cmdopts.erase=1;  // 1= do not erase
@@ -105,6 +108,11 @@ void parse_cmdline(int argc, char **argv) {
 				cmdopts.action = action_write;
 				cmdopts.filename = optarg;
 				break;
+			case 'S':
+			       cmdopts.size_nowarn=1;
+			       cmdopts.size_error=0;
+			       break;
+
 		        case 's':
 			        cmdopts.size_error=1;
 				break;
@@ -394,7 +402,7 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 		    if (cmdopts.size_error)
 		      ERROR2("Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
 		    else
-		      printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
+		      if (cmdopts.size_nowarn==0) printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
 	          }
 		  break;
 		case DATA:
@@ -403,7 +411,7 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 		    if (cmdopts.size_error)
 		      ERROR2("Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
 		    else
-		      printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
+		      if (cmdopts.size_nowarn==0) printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
 	          }
 			break;
 		case CONFIG:
