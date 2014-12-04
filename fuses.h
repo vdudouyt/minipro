@@ -9,6 +9,8 @@ typedef struct fuse_decl {
 } fuse_decl_t;
 
 extern fuse_decl_t avr_fuses[];
+extern fuse_decl_t avr2_fuses[];
+extern fuse_decl_t avr3_fuses[];
 extern fuse_decl_t pic_fuses[];
 extern fuse_decl_t pic2_fuses[];
 
