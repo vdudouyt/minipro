@@ -468,9 +468,33 @@ int main(int argc, char **argv) {
 
 	/* TODO: put in devices.h and remove this stub */
 	switch(device->protocol_id) {
+
 		case 0x71:
-			device->fuses = avr_fuses;
-			break;
+		  switch(device->variant) {
+			case 0x01:
+			case 0x21:
+			case 0x44:
+			case 0x61:
+				device->fuses = avr_fuses;
+				break;
+			case 0x00:
+			case 0x20:
+			case 0x22:
+			case 0x43:
+			case 0x85:
+				device->fuses = avr2_fuses;
+				break;
+			case 0x0a:
+			case 0x2a:
+			case 0x48:
+			case 0x49:
+			case 0x6b:
+				device->fuses = avr3_fuses;
+				break;
+			default:
+				PERROR("Unknown AVR device");
+		  }
+		  break;
  	        case 0x10063:   //  select 2 fuses
 		  device->fuses=pic2_fuses;
 		  device->protocol_id&=0xFFFF;

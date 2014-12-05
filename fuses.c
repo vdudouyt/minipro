@@ -2,6 +2,19 @@
 #include "fuses.h"
 
 fuse_decl_t avr_fuses[] = {
+	{ .name = "fuses", .minipro_cmd = 0x12, .length = 1, .offset = 0 },
+	{ .name = "lock_byte", .minipro_cmd = 0x41, .length = 1, .offset = 0 },
+	{ .name = NULL },
+};
+
+fuse_decl_t avr2_fuses[] = {
+	{ .name = "fuses_lo", .minipro_cmd = 0x12, .length = 1, .offset = 0 },
+	{ .name = "fuses_hi", .minipro_cmd = 0x12, .length = 1, .offset = 1 },
+	{ .name = "lock_byte", .minipro_cmd = 0x41, .length = 1, .offset = 0 },
+	{ .name = NULL },
+};
+
+fuse_decl_t avr3_fuses[] = {
 	{ .name = "fuses_lo", .minipro_cmd = 0x12, .length = 1, .offset = 0 },
 	{ .name = "fuses_hi", .minipro_cmd = 0x12, .length = 1, .offset = 1 },
 	{ .name = "fuses_ext", .minipro_cmd = 0x12, .length = 1, .offset = 2 },
