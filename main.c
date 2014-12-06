@@ -336,6 +336,8 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	/* Downloading data from chip*/
 	unsigned char *chip_data = malloc(size);
 	read_page_ram(handle, chip_data, type, name, size);
+	minipro_end_transaction(handle);
+
 	unsigned char c1, c2;
 	int idx = compare_memory(file_data, chip_data, file_size, &c1, &c2);
 
@@ -348,8 +350,6 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	} else {
 		printf("Verification OK\n");
 	}
-
-	minipro_end_transaction(handle);
 }
 
 /* Higher-level logic */
@@ -458,12 +458,12 @@ int main(int argc, char **argv) {
 	if(device->chip_id_bytes_count && device->chip_id) {
 		minipro_begin_transaction(handle);
 		unsigned int chip_id = minipro_get_chip_id(handle);
+		minipro_end_transaction(handle);
 		if (chip_id == device->chip_id) {
 			printf("Chip ID OK: 0x%02x\n", chip_id);
 		} else {
 			ERROR2("Invalid Chip ID: expected 0x%02x, got 0x%02x\n", device->chip_id, chip_id);
 		}		
-		minipro_end_transaction(handle);
 	}
 
 	/* TODO: put in devices.h and remove this stub */
