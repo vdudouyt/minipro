@@ -62,10 +62,6 @@ void parse_cmdline(int argc, char **argv) {
 	char c;
 	memset(&cmdopts, 0, sizeof(cmdopts));
 
-	if(argc < 2) {
-		print_help_and_exit(argv[0]);
-	}
-
 	while((c = getopt(argc, argv, "euPvr:w:p:c:iI")) != -1) {
 		switch(c) {
 		        case 'e':
@@ -116,6 +112,8 @@ void parse_cmdline(int argc, char **argv) {
 		        case 'I':
 				cmdopts.icsp = MP_ICSP_ENABLE;
 				break;
+			default:
+				print_help_and_exit(argv[0]);
 		}
 	}
 }
