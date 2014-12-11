@@ -19,6 +19,7 @@ struct {
         int erase;
         int protect_off;
         int protect_on;
+        int verify;
         int icsp;
 } cmdopts;
 
@@ -31,6 +32,7 @@ void print_help_and_exit(const char *progname) {
 		"	-e 		Do NOT erase device\n"
 		"	-u 		Do NOT disable write-protect\n"
 		"	-P 		Do NOT enable write-protect\n"
+		"	-v		Do NOT verify after write\n"
 		"	-p <device>	Specify device\n"
 		"	-c <type>	Specify memory type (optional)\n"
 		"			Possible values: code, data, config\n"
@@ -64,7 +66,7 @@ void parse_cmdline(int argc, char **argv) {
 		print_help_and_exit(argv[0]);
 	}
 
-	while((c = getopt(argc, argv, "euPr:w:p:c:iI")) != -1) {
+	while((c = getopt(argc, argv, "euPvr:w:p:c:iI")) != -1) {
 		switch(c) {
 		        case 'e':
 			  cmdopts.erase=1;  // 1= do not erase
@@ -78,6 +80,10 @@ void parse_cmdline(int argc, char **argv) {
 			  cmdopts.protect_on=1;  // 1= do not enable write protect
 			  break;
 			  
+		        case 'v':
+			  cmdopts.verify=1;  // 1= do not verify
+			  break;
+
 			case 'p':
 				if(!strcmp(optarg, "help"))
 					print_devices_and_exit();
@@ -415,11 +421,13 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 		case UNSPECIFIED:
 		case CODE:
 			write_page_file(handle, filename, MP_WRITE_CODE, "Code", device->code_memory_size);
-			verify_page_file(handle, filename, MP_READ_CODE, "Code", device->code_memory_size);
+			if (cmdopts.verify == 0)
+				verify_page_file(handle, filename, MP_READ_CODE, "Code", device->code_memory_size);
 			break;
 		case DATA:
 			write_page_file(handle, filename, MP_WRITE_DATA, "Data", device->data_memory_size);
-			verify_page_file(handle, filename, MP_READ_DATA, "Data", device->data_memory_size);
+			if (cmdopts.verify == 0)
+				verify_page_file(handle, filename, MP_READ_DATA, "Data", device->data_memory_size);
 			break;
 		case CONFIG:
 			if(device->fuses) {
