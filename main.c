@@ -272,7 +272,8 @@ void read_fuses(minipro_handle_t *handle, const char *filename, fuse_decl_t *fus
 					continue;
 				}
 				int value = load_int(&(buf[fuses[d].offset]), fuses[d].length, MP_LITTLE_ENDIAN);
-				Config_set_int(fuses[d].name, value);
+				if (Config_set_int(fuses[d].name, value) == -1)
+					ERROR("Couldn't set configuration");
 			}
 
 			opcode = fuses[i+1].minipro_cmd;
@@ -307,6 +308,8 @@ void write_fuses(minipro_handle_t *handle, const char *filename, fuse_decl_t *fu
 					continue;
 				}
 				int value = Config_get_int(fuses[d].name);
+				if (value == -1)
+					ERROR("Could not read configuration");
 				format_int(&(buf[fuses[d].offset]), value, fuses[d].length, MP_LITTLE_ENDIAN);
 			}
 			minipro_write_fuses(handle, opcode, data_length, buf);
