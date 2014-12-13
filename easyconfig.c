@@ -146,6 +146,8 @@ int Config_set_str(const char *par_name, const char *value) {
 int Config_get_int(const char *par_name) {
 	unsigned int intval;
 	char *strval = Config_get_str(par_name);
+	if (strval == NULL)
+		return -1;
 	if(!sscanf(strval, "0x%04x", &intval) && !sscanf(strval, "%d", &intval)) {
 		return -1;
 	}
