@@ -289,7 +289,7 @@ void write_fuses(minipro_handle_t *handle, const char *filename, fuse_decl_t *fu
 	printf("Writing fuses... ");
 	fflush(stdout);
 	if(Config_open(filename)) {
-		PERROR("Couldn't open config");
+		PERROR("Couldn't parse config");
 	}
 
 	minipro_begin_transaction(handle);

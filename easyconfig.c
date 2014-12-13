@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "easyconfig.h"
 
@@ -80,7 +81,7 @@ int Config_open(const char *path) {
 	
 	rewind(pFile);
 	while (fgets(temp,LINE_LENGTH,pFile)) {
-		if (strlen(temp)>LINE_LENGTH) { printf("Config error. Too long line: %d\n", counter1); ret=1; break; }  
+		if (strlen(temp)>LINE_LENGTH) { printf("Config error. Line too long: %d\n", counter1); ret=1; errno=EINVAL; break; }
 		if (strlen(temp)<4) { 
 			counter1++;
 			continue;
@@ -89,11 +90,11 @@ int Config_open(const char *path) {
 		strcpy(config_content[counter].config_line,temp);
 		result=strtok(temp,"="); 
 		result=str_trim_right(result);
-		if (!result) { printf("Config error. Line: %d\n", counter1); ret=1; break; }
+		if (!result) { printf("Config error. Line: %d\n", counter1); ret=1; errno=EINVAL; break; }
 		strcpy(config_content[counter].param_name,result);
 		result=strtok(NULL,"\n"); 
 		result=str_trim_left(result);
-		if (!result) { printf("Config error. Line: %d\n", counter1); ret=1; break; }
+		if (!result) { printf("Config error. Line: %d\n", counter1); ret=1; errno=EINVAL; break; }
 		strcpy(config_content[counter].param_value,result);
 		
 		counter++; counter1++;
