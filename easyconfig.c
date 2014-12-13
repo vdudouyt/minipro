@@ -81,7 +81,7 @@ int Config_open(const char *path) {
 	
 	rewind(pFile);
 	while (fgets(temp,LINE_LENGTH,pFile)) {
-		if (strlen(temp)>LINE_LENGTH) { printf("Config error. Line too long: %d\n", counter1); ret=1; errno=EINVAL; break; }
+		if (strlen(temp) == LINE_LENGTH -1) { printf("Config error. Line too long: %d\n", counter1); ret=1; errno=EINVAL; break; }
 		if (strlen(temp)<4) { 
 			counter1++;
 			continue;
