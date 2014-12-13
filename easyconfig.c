@@ -91,10 +91,12 @@ int Config_open(const char *path) {
 		result=strtok(temp,"="); 
 		result=str_trim_right(result);
 		if (!result) { printf("Config error. Line: %d\n", counter1); ret=1; errno=EINVAL; break; }
+		if (strlen(result) >= sizeof(config_content[counter].param_name)) { printf("Config error. Key too long on line: %d\n", counter1); ret=1; errno=EINVAL; break; }
 		strcpy(config_content[counter].param_name,result);
 		result=strtok(NULL,"\n"); 
 		result=str_trim_left(result);
 		if (!result) { printf("Config error. Line: %d\n", counter1); ret=1; errno=EINVAL; break; }
+		if (strlen(result) >= sizeof(config_content[counter].param_value)) { printf("Config error. Value too long on line: %d\n", counter1); ret=1; errno=EINVAL; break; }
 		strcpy(config_content[counter].param_value,result);
 		
 		counter++; counter1++;
@@ -108,6 +110,7 @@ char *Config_get_str(const char *par_name) {
 	for (i=0;i<config_lines_qty;i++) {
 		
 		if (!strcmp(config_content[i].param_name,par_name)) {
+			if (strlen(param_value) >= sizeof(config_content[i].param_value)) { break; }
 			strcpy(param_value,config_content[i].param_value);
 			return param_value;
 		}
@@ -120,13 +123,19 @@ int Config_set_str(const char *par_name, const char *value) {
 
 	for (i=0;i<config_lines_qty;i++) { 
 		if (!strcmp(config_content[i].param_name,par_name)) {
+			if (strlen(param_value) >= sizeof(config_content[i].param_value)) { return -1; }
 			strcpy(config_content[i].param_value, value);
+			if (strlen(par_name) + strlen(value) + 4 >= sizeof(config_content[i].config_line)) { return -1; }
 			sprintf(config_content[i].config_line,"%s = %s\n",par_name,value);
 			return 0;
 		}
 	}
+
+	if (strlen(par_name) + strlen(value) + 4 >= sizeof(config_content[i].config_line)) { return -1; }
 	sprintf(config_content[i].config_line,"%s = %s\n",par_name,value);
+	if (strlen(par_name) >= sizeof(config_content[i].param_name)) { return -1; }
 	strcpy(config_content[i].param_name, par_name);
+	if (strlen(param_value) >= sizeof(config_content[i].param_value)) { return -1; }
 	strcpy(config_content[i].param_value, value);
 	
 	config_lines_qty++;
