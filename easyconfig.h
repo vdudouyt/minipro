@@ -18,10 +18,10 @@
 int Config_init(const char *conf_name);
 
 char *Config_get_str(const char *par_name);
-void Config_set_str(const char *par_name, const char *par_value);
+int Config_set_str(const char *par_name, const char *par_value);
 
 int Config_get_int(const char *par_name);
-void Config_set_int(const char *par_name, unsigned int value);
+int Config_set_int(const char *par_name, unsigned int value);
 
 int Config_open(const char *path);
 int Config_close();
