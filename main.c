@@ -202,7 +202,7 @@ void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int t
 	device_t *device = handle->device;
 	
 	int blocks_count = size / device->write_buffer_size;
-	if(size % device->read_buffer_size != 0) {
+	if(size % device->write_buffer_size != 0) {
 		blocks_count++;
 	}
 
