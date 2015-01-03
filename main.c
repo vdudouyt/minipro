@@ -21,6 +21,7 @@ struct {
         int protect_on;
         int verify;
         int icsp;
+		int idcheck_continue;
 } cmdopts;
 
 void print_help_and_exit(const char *progname) {
@@ -37,7 +38,8 @@ void print_help_and_exit(const char *progname) {
 		"	-c <type>	Specify memory type (optional)\n"
 		"			Possible values: code, data, config\n"
 		"	-i		Use ICSP\n"
-		"	-I		Use ICSP (without enabling Vcc)\n";
+		"	-I		Use ICSP (without enabling Vcc)\n"
+		"	-y		Do NOT error on ID mismatch\n";
 	fprintf(stderr, usage, progname);
 	exit(-1);
 }
@@ -62,7 +64,7 @@ void parse_cmdline(int argc, char **argv) {
 	char c;
 	memset(&cmdopts, 0, sizeof(cmdopts));
 
-	while((c = getopt(argc, argv, "euPvr:w:p:c:iI")) != -1) {
+	while((c = getopt(argc, argv, "euPvyr:w:p:c:iI")) != -1) {
 		switch(c) {
 		        case 'e':
 			  cmdopts.erase=1;  // 1= do not erase
@@ -75,9 +77,13 @@ void parse_cmdline(int argc, char **argv) {
 		        case 'P':
 			  cmdopts.protect_on=1;  // 1= do not enable write protect
 			  break;
-			  
+
 		        case 'v':
 			  cmdopts.verify=1;  // 1= do not verify
+			  break;
+
+		        case 'y':
+			  cmdopts.idcheck_continue=1;  // 1= do not stop on id mismatch
 			  break;
 
 			case 'p':
@@ -471,8 +477,11 @@ int main(int argc, char **argv) {
 		if (chip_id == device->chip_id) {
 			printf("Chip ID OK: 0x%02x\n", chip_id);
 		} else {
-			ERROR2("Invalid Chip ID: expected 0x%02x, got 0x%02x\n", device->chip_id, chip_id);
-		}		
+			if (cmdopts.idcheck_continue)
+				printf("WARNING: Chip ID mismatch: expected 0x%02x, got 0x%02x\n", device->chip_id, chip_id);
+			else
+				ERROR2("Invalid Chip ID: expected 0x%02x, got 0x%02x\n(use '-y' to continue anyway at your own risk)\n", device->chip_id, chip_id);
+		}
 	}
 
 	/* TODO: put in devices.h and remove this stub */
