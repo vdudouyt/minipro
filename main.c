@@ -25,16 +25,17 @@ struct {
 } cmdopts;
 
 void print_help_and_exit(const char *progname) {
-	char usage[] = 
+	char usage[] =
 		"Usage: %s [options]\n"
 		"options:\n"
+		"	-l		List all supported devices\n"
 		"	-r <filename>	Read memory\n"
 		"	-w <filename>	Write memory\n"
 		"	-e 		Do NOT erase device\n"
 		"	-u 		Do NOT disable write-protect\n"
 		"	-P 		Do NOT enable write-protect\n"
 		"	-v		Do NOT verify after write\n"
-		"	-p <device>	Specify device\n"
+		"	-p <device>	Specify device (use quotes)\n"
 		"	-c <type>	Specify memory type (optional)\n"
 		"			Possible values: code, data, config\n"
 		"	-i		Use ICSP\n"
@@ -64,8 +65,11 @@ void parse_cmdline(int argc, char **argv) {
 	char c;
 	memset(&cmdopts, 0, sizeof(cmdopts));
 
-	while((c = getopt(argc, argv, "euPvyr:w:p:c:iI")) != -1) {
+	while((c = getopt(argc, argv, "leuPvyr:w:p:c:iI")) != -1) {
 		switch(c) {
+			case 'l':
+				print_devices_and_exit();
+				break;
 		        case 'e':
 			  cmdopts.erase=1;  // 1= do not erase
 			  break;
