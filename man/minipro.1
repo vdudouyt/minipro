@@ -3,6 +3,7 @@
 minipro \- flash various chips with Minipro TL866XX series of programmers from autoelectric.cn.
 .SH SYNOPSIS
 .B minipro
+.RB -l\ \ |
 .RB [-p " device"]
 .RB [-c " code|data|config"]
 .RB [-r|-w " filename"]
@@ -14,11 +15,74 @@ minipro \- flash various chips with Minipro TL866XX series of programmers from a
 .RB [-r|-w " filename"]
 .RB [-e] [-u] [-P] [-i|-I]
 
+.SH DESCRIPTION
+.I minipro
+is an opensource tool that aims to create a complete cross-platform 
+replacement for the proprietary utility from autoelectric.cn. Currently 
+it supports more than 13000 of target devices - including AVRs, PICs as 
+well as a huge number of other microcontrollers and various BIOSes.
+
+
+.SH OPTIONS
+.TP
+.B \-l
+Get a list of supported devices.
+
+.TP
+.B \-p <device>
+Specify the device name.  If the desired device name contains a space, 
+parenthesis, or at sign; the device name MUST be surrounded by quotes.
+
+.TP
+.B \-c <type>
+Optionally specify memory type.  Possible values include "code", "data", 
+and "config".
+
+.TP
+.B \-r <filename>
+Read from the device and write the contents to this file.
+
+.TP
+.B \-w <filename>
+Write to the device using this file.
+
+.TP
+.B \-e
+Do NOT erase device.
+
+.TP
+.B \-u
+Do NOT disable write-protect.
+
+.TP
+.B \-P
+Do NOT enable write-protect.
+
+.TP
+.B \-v
+Do NOT verify after write.
+
+.TP
+.B \-i
+Use ICSP.
+
+.TP
+.B \-I
+Use ICSP (without enabling Vcc).
+
+.TP
+.B \-y
+Do NOT error on ID mismatch.
+
+.SH NOTES
+
 If
 .B -c
 is omitted and
 .B -r
-is specified then the code, data (if applicable) and config (if applicable) are getting read in filename.$ext, filename.eeprom.$ext and filename.config.txt correspondingly. If
+is specified then the code, data (if applicable) and config (if 
+applicable) will be read from filename.$ext, filename.eeprom.$ext and 
+filename.config.txt correspondingly. If
 .B -c
 is omitted and
 .B -w
@@ -30,8 +94,28 @@ The
 .B -i
 and
 .B -I
-options enable use of ICSP port for TL866A models. The former enables the voltage supply on the Vcc pin of the ICSP port while the latter leaves it off.
+options enable use of ICSP port for TL866A models. The former enables 
+the voltage supply on the Vcc pin of the ICSP port while the latter 
+leaves it off.  These options are of no use for the TL866CS.
 
-.SH DESCRIPTION
+.SH AUTHOR
 .I minipro
-is an opensource tool that aims to create a complete cross-platform replacement for proprietary utility from autoelectric.cn. Currently it's supporting more than 13000 of target devices - including AVRs, PICs as well as a huge number of other microcontrollers and various BIOSes.
+was written by Valentin Dudouyt and is copyright 2014.  Many others 
+have contributed code and bug reports.
+
+.SH DISTRIBUTION
+The canonical repository for 
+.I minipro
+is at Github:
+.br
+.BR https://github.com/vdudouyt/minipro
+.br
+It is distributed under the GNU General Public License version 2 or (at 
+your option) any later version.
+.br
+.BR http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+.br
+This software is offered as-is with no warranty or liability.  If you 
+find a bug or would like minipro to do something it doesn't currently 
+do, please visit the above Github website and report your concerns.
+
