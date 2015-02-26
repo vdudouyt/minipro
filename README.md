@@ -28,3 +28,13 @@ git clone https://github.com/vdudouyt/minipro/ && cd minipro/
 fakeroot dpkg-buildpackage -b
 sudo dpkg -i ../minipro_0.1-1_*.deb
 ```
+## Installing under CentOS7
+
+```nohighlight
+sudo yum install libusbx libusbx-dev git
+git clone https://github.com/vdudouyt/minipro/ && cd minipro/
+patch -p1 < CentOS/CentOS7-x86_64.patch
+make
+sudo make install
+sudo udevadm control --reload-rules
+```
