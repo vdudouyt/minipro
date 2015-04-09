@@ -8,10 +8,12 @@ MINIPROHEX=miniprohex
 TESTS=$(wildcard tests/test_*.c);
 OBJCOPY=objcopy
 
-BIN_DIR=$(DESTDIR)/usr/bin/
-UDEV_RULES_DIR=$(DESTDIR)/usr/lib/udev/rules.d/
-MAN_DIR=$(DESTDIR)/usr/share/man/man1/
-COMPLETIONS_DIR=$(DESTDIR)/etc/bash_completion.d/
+PREFIX = /usr/local
+
+BIN_DIR = $(PREFIX)/bin/
+UDEV_RULES_DIR = /etc/udev/rules.d/
+MAN_DIR = $(PREFIX)/share/man/man1/
+COMPLETIONS_DIR = /etc/bash_completion.d/
 
 libusb_CFLAGS = `pkg-config --cflags libusb-1.0`
 libusb_LIBS = `pkg-config --libs libusb-1.0`
