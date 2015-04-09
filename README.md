@@ -32,7 +32,7 @@ git clone https://github.com/vdudouyt/minipro.git
 cd minipro
 make
 sudo make install
-``
+```
 
 ## Making a .deb file for Debian / Ubuntu
 
