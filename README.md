@@ -21,9 +21,10 @@ $ minipro -p ATMEGA48 -r atmega48.bin
 ## Prerequisites
 
 You'll need some sort of Linux machine.  Other Unices may work, though 
-that is untested.  You will need libusb to access the programmer through 
-a USB port.  For Debian, Ubuntu, and related distributions, the package 
-you want is "libusb-1.0-0-dev".
+that is untested.  You will need version 1.0.16 or greater of libusb.
+Debian 7 (Wheezy) users should do 
+```sudo apt-get -t wheezy-backports libusb-1.0-0-dev```
+to make sure you get the right version.
 
 ## Compilation and Installation
 ```nohighlight
@@ -36,12 +37,13 @@ sudo make install
 
 ## Making a .deb file for Debian / Ubuntu
 
-Building a Debian package directly from this repository is easy
+Building a Debian package directly from this repository is easy.  Make 
+sure you have the packages described above installed.  Be sure it all 
+builds, then do this:
 
 ```nohighlight
-sudo apt-get install build-essential git fakeroot dpkg-dev libusb-1.0-0-dev
-git clone https://github.com/vdudouyt/minipro.git
-cd minipro
+sudo apt-get install fakeroot dpkg-dev
 fakeroot dpkg-buildpackage -b
-sudo dpkg -i ../minipro_0.1-1_*.deb
 ```
+
+You should then have a .deb file for you to install with ```dpkg -i```.
