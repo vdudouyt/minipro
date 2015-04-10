@@ -6,6 +6,8 @@
 
 #include <libusb.h>
 
+#include "version.h"
+
 #define MP_TL866A 1
 #define MP_TL866CS 2
 
