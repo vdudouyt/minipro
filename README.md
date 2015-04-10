@@ -3,7 +3,8 @@ minipro
 An open source program for controlling the MiniPRO TL866xx series of chip programmers 
 
 ## Features
-* Compatibility with Minipro TL866CS and Minipro TL866A
+* Compatibility with Minipro TL866CS and Minipro TL866A from 
+Autoelectric (http://www.autoelectric.cn/)
 * More than 13000 target devices (including AVRs, PICs, various BIOSes and EEPROMs)
 * ZIF40 socket and ISP support
 * Vendor-specific MCU configuration bits
