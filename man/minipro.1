@@ -1,6 +1,6 @@
 .TH MINIPRO 1 "20 February 2014 (v0.1)" "Valentin Dudouyt"
 .SH NAME
-minipro \- flash various chips with Minipro TL866XX series of programmers from autoelectric.cn.
+minipro \- programs various chips using the Minipro TL866XX series of programmers.
 .SH SYNOPSIS
 .B minipro
 .RB -l\ \ |
@@ -17,10 +17,11 @@ minipro \- flash various chips with Minipro TL866XX series of programmers from a
 
 .SH DESCRIPTION
 .I minipro
-is an opensource tool that aims to create a complete cross-platform 
-replacement for the proprietary utility from autoelectric.cn. Currently 
-it supports more than 13000 of target devices - including AVRs, PICs as 
-well as a huge number of other microcontrollers and various BIOSes.
+is an Open Source tool intended to become a complete cross-platform 
+replacement for the proprietary utility from Autoelectric. Currently it 
+supports more than 13000 of target devices - including AVRs, PICs as 
+well as a huge number of other microcontrollers and various memory 
+chips.
 
 
 .SH OPTIONS
@@ -97,6 +98,10 @@ and
 options enable use of ICSP port for TL866A models. The former enables 
 the voltage supply on the Vcc pin of the ICSP port while the latter 
 leaves it off.  These options are of no use for the TL866CS.
+
+The Minipro TL866xx series of chip programmers is distributed by 
+Autoelectric.  Their website is
+.BR http://www.autoelectric.cn.
 
 .SH AUTHOR
 .I minipro
