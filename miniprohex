@@ -74,7 +74,13 @@ do
     RWOPT=-w
     shift
     FN=$1
+  elif [ "$1" == "-p" ]
+  then
+      DEV=$2
+      shift
+      shift
   else
+echo DEBUG: adding $1
     OPTS="$OPTS $1"
   fi
   shift
@@ -117,13 +123,13 @@ PRECVT=
 POSTCVT=
 esac
 # If we write, do PRECMD and execute
-if [ $RWOPT == -w ]
+if [ "$RWOPT" == -w ]
 then
 $PRECVT
-minipro $OPTS $RWOPT $RFILE
+minipro $OPTS -p "$DEV" $RWOPT $RFILE
 else
 # If reading, execute and then do post cmd
-minipro $OPTS $RWOPT $RFILE
+minipro $OPTS -p "$DEV" $RWOPT $RFILE
 $POSTCVT
 fi
 
