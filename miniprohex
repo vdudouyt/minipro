@@ -80,7 +80,6 @@ do
       shift
       shift
   else
-echo DEBUG: adding $1
     OPTS="$OPTS $1"
   fi
   shift
