@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
+#include <libgen.h>
 #include "main.h"
 #include "minipro.h"
 #include "database.h"
@@ -25,8 +26,9 @@ struct {
 	  int get_id;
 } cmdopts;
 
-void print_help_and_exit(const char *progname) {
+void print_help_and_exit(char *progname) {
 	char usage[] =
+		"minipro version %s     A free and open TL866XX programmer\n"
 		"Usage: %s [options]\n"
 		"options:\n"
 		"	-l		List all supported devices\n"
@@ -42,8 +44,9 @@ void print_help_and_exit(const char *progname) {
 		"	-i		Use ICSP\n"
 		"	-I		Use ICSP (without enabling Vcc)\n"
 		"	-y		Do NOT error on ID mismatch\n"
-	  "	-g		Gets the ID chip, set in the panel MiniPro (25x SPI flash)\n";
-	fprintf(stderr, usage, progname);
+		"	-g		Gets the ID chip, set in the panel MiniPro (25x SPI flash)\n";
+		"	-y		Do NOT error on ID mismatch\n";
+	fprintf(stderr, usage, VERSION, basename(progname));
 	exit(-1);
 }
 
