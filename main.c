@@ -22,6 +22,7 @@ struct {
         int verify;
         int icsp;
 		int idcheck_continue;
+	  int get_id;
 } cmdopts;
 
 void print_help_and_exit(const char *progname) {
@@ -40,7 +41,8 @@ void print_help_and_exit(const char *progname) {
 		"			Possible values: code, data, config\n"
 		"	-i		Use ICSP\n"
 		"	-I		Use ICSP (without enabling Vcc)\n"
-		"	-y		Do NOT error on ID mismatch\n";
+		"	-y		Do NOT error on ID mismatch\n"
+	  "	-g		Gets the ID chip, set in the panel MiniPro (25x SPI flash)\n";
 	fprintf(stderr, usage, progname);
 	exit(-1);
 }
@@ -65,7 +67,7 @@ void parse_cmdline(int argc, char **argv) {
 	char c;
 	memset(&cmdopts, 0, sizeof(cmdopts));
 
-	while((c = getopt(argc, argv, "leuPvyr:w:p:c:iI")) != -1) {
+	while((c = getopt(argc, argv, "gleuPvyr:w:p:c:iI")) != -1) {
 		switch(c) {
 			case 'l':
 				print_devices_and_exit();
@@ -121,6 +123,9 @@ void parse_cmdline(int argc, char **argv) {
 				break;
 		        case 'I':
 				cmdopts.icsp = MP_ICSP_ENABLE;
+				break;
+						case 'g':
+				cmdopts.get_id = 1;
 				break;
 			default:
 				print_help_and_exit(argv[0]);
@@ -455,8 +460,21 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 	}
 }
 
+/* TODO: Optimize this */
+int get_id(device_t *device) {	
+	minipro_handle_t *handle = minipro_open(device);
+	minipro_begin_transaction(handle);
+	unsigned int get_chip_id = minipro_get_chip_id(handle);
+	minipro_end_transaction(handle);
+	printf("0x%02x\n", get_chip_id);
+	exit(1);
+}
+
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
+  if(cmdopts.get_id) {
+		get_id(device_8_pin);
+	} 
 	if(!cmdopts.filename) {
 		print_help_and_exit(argv[0]);
 	}
