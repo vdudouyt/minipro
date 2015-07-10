@@ -1,0 +1,4 @@
+*.o
+minipro
+minipro-query-db
+version.h
