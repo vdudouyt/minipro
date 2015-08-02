@@ -53,6 +53,7 @@ typedef struct minipro_handle {
 
 minipro_handle_t *minipro_open(device_t *device);
 void minipro_close(minipro_handle_t *handle);
+void minipro_hard_reset();
 void minipro_begin_transaction(minipro_handle_t *handle);
 void minipro_end_transaction(minipro_handle_t *handle);
 void minipro_protect_off(minipro_handle_t *handle);

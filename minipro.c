@@ -29,6 +29,11 @@ minipro_handle_t *minipro_open(device_t *device) {
 		ERROR("Error opening device");
 	}
 
+	// we need to do this as it is possible that the device was not closed properly in a previous session
+	// if we do not do this and the device was not closed properly it will cause an infinite hang
+	// see: https://github.com/OpenKinect/libfreenect/blob/80f74239db4d450ecc0e45aa8b89cfcbc35defc2/src/usb_libusb10.c#L328
+	libusb_reset_device(handle->usb_handle);
+
 	handle->device = device;
 
 	return(handle);
@@ -36,7 +41,33 @@ minipro_handle_t *minipro_open(device_t *device) {
 
 void minipro_close(minipro_handle_t *handle) {
 	libusb_close(handle->usb_handle);
+	libusb_exit(handle->ctx);
 	free(handle);
+}
+
+void minipro_hard_reset() {
+	int ret;
+	libusb_context *ctx;
+	libusb_device_handle *usb_handle;
+
+	ret = libusb_init(&ctx);
+	if(ret < 0) {
+		printf("minipro_hard_reset: libusb_init failed (%s)\n", libusb_strerror(ret));
+		return;
+	}
+
+	usb_handle = libusb_open_device_with_vid_pid(ctx, 0x04d8, 0xe11c);
+	if(usb_handle == NULL) {
+		printf("minipro_hard_reset: libusb_open_device_with_vid_pid failed\n");
+		return;
+	}
+
+	// two resets are required to recover from all cases
+	libusb_reset_device(usb_handle);
+	libusb_reset_device(usb_handle);
+
+	libusb_close(usb_handle);
+	libusb_exit(ctx);
 }
 
 unsigned char msg[MAX_WRITE_BUFFER_SIZE];
@@ -176,7 +207,7 @@ void minipro_write_fuses(minipro_handle_t *handle, unsigned int type, unsigned i
 	msg_init(msg, type, handle->device, handle->icsp);
 	msg[2]=(type==18 && length==4)?2:1;  // note that PICs with 1 config word will show length==2
 	memcpy(&(msg[7]), buf, length);
-	
+
 	msg_send(handle, msg, 18);
 	msg_recv(handle, msg, 7 + length);
 

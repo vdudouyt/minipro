@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
@@ -17,12 +18,12 @@ struct {
 	char *filename;
 	device_t *device;
 	enum { UNSPECIFIED = 0, CODE, DATA, CONFIG } page;
-        int erase;
-        int protect_off;
-        int protect_on;
-        int verify;
-        int icsp;
-		int idcheck_continue;
+	int erase;
+	int protect_off;
+	int protect_on;
+	int verify;
+	int icsp;
+	int idcheck_continue;
 } cmdopts;
 
 void print_help_and_exit(char *progname) {
@@ -198,7 +199,7 @@ void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int t
 	sprintf(status_msg, "Writing %s... ", name);
 
 	device_t *device = handle->device;
-	
+
 	int blocks_count = size / device->write_buffer_size;
 	if(size % device->read_buffer_size != 0) {
 		blocks_count++;
@@ -398,7 +399,7 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 			}
 			break;
 	}
-	minipro_end_transaction(handle); 
+	minipro_end_transaction(handle);
 }
 
 void action_write(const char *filename, minipro_handle_t *handle, device_t *device) {
@@ -457,6 +458,19 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 	}
 }
 
+void sig_handler(int signum)
+{
+	printf("\nAborting operation...\n");
+
+	signal(SIGINT, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+
+	// end any transaction that may be in progress
+	minipro_hard_reset();
+
+	raise(signum);
+}
+
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
 	if(!cmdopts.filename) {
@@ -469,6 +483,9 @@ int main(int argc, char **argv) {
 	device_t *device = cmdopts.device;
 	minipro_handle_t *handle = minipro_open(device);
 	handle->icsp = cmdopts.icsp;
+
+	signal(SIGINT, sig_handler);
+	signal(SIGTERM, sig_handler);
 
 	// Printing system info
 	minipro_system_info_t info;
@@ -523,7 +540,7 @@ int main(int argc, char **argv) {
 		  device->fuses=pic2_fuses;
 		  device->protocol_id&=0xFFFF;
 		  break;
-		  
+
 		case 0x63:
 		case 0x65:
 			device->fuses = pic_fuses;
