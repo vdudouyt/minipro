@@ -27,15 +27,6 @@ struct {
 	int query_device_id;
 } cmdopts;
 
-// generic 8 pin device
-device_t device_8pin[] ={
-	{
-	.protocol_id = 0x03,
-	.variant = 0x02,
-	.chip_id = 0x01,
-	.chip_id_bytes_count = 0x03
-	}
-};
 
 void print_help_and_exit(char *progname) {
 	char usage[] =
@@ -127,7 +118,7 @@ void parse_cmdline(int argc, char **argv) {
 
 			case 'q':
 				cmdopts.query_device_id=8;  // 8= query for 8 bit device id
-				cmdopts.device = device_8pin;  // prime with generic 8 pin device
+				cmdopts.device = get_device_by_name("M25P80 @SOIC8");  // prime with canonical 8 bit part
 				break;
 
 			case 'r':
