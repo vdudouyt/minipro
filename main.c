@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
@@ -17,13 +18,15 @@ struct {
 	char *filename;
 	device_t *device;
 	enum { UNSPECIFIED = 0, CODE, DATA, CONFIG } page;
-        int erase;
-        int protect_off;
-        int protect_on;
-        int verify;
-        int icsp;
-		int idcheck_continue;
+	int erase;
+	int protect_off;
+	int protect_on;
+	int verify;
+	int icsp;
+	int idcheck_continue;
+	int query_device_id;
 } cmdopts;
+
 
 void print_help_and_exit(char *progname) {
 	char usage[] =
@@ -42,6 +45,7 @@ void print_help_and_exit(char *progname) {
 		"			Possible values: code, data, config\n"
 		"	-i		Use ICSP\n"
 		"	-I		Use ICSP (without enabling Vcc)\n"
+		"	-q		query 8 pin device id\n"
 		"	-y		Do NOT error on ID mismatch\n";
 	fprintf(stderr, usage, VERSION, basename(progname));
 	exit(-1);
@@ -67,30 +71,31 @@ void parse_cmdline(int argc, char **argv) {
 	char c;
 	memset(&cmdopts, 0, sizeof(cmdopts));
 
-	while((c = getopt(argc, argv, "leuPvyr:w:p:c:iI")) != -1) {
+	while((c = getopt(argc, argv, "leuPvyqr:w:p:c:iI")) != -1) {
 		switch(c) {
 			case 'l':
 				print_devices_and_exit();
 				break;
-		        case 'e':
-			  cmdopts.erase=1;  // 1= do not erase
-			  break;
 
-		        case 'u':
-			  cmdopts.protect_off=1;  // 1= do not disable write protect
-			  break;
+			case 'e':
+				cmdopts.erase=1;  // 1= do not erase
+				break;
 
-		        case 'P':
-			  cmdopts.protect_on=1;  // 1= do not enable write protect
-			  break;
+			case 'u':
+				cmdopts.protect_off=1;  // 1= do not disable write protect
+				break;
 
-		        case 'v':
-			  cmdopts.verify=1;  // 1= do not verify
-			  break;
+			case 'P':
+				cmdopts.protect_on=1;  // 1= do not enable write protect
+				break;
 
-		        case 'y':
-			  cmdopts.idcheck_continue=1;  // 1= do not stop on id mismatch
-			  break;
+			case 'v':
+				cmdopts.verify=1;  // 1= do not verify
+				break;
+
+			case 'y':
+				cmdopts.idcheck_continue=1;  // 1= do not stop on id mismatch
+				break;
 
 			case 'p':
 				if(!strcmp(optarg, "help"))
@@ -99,6 +104,7 @@ void parse_cmdline(int argc, char **argv) {
 				if(!cmdopts.device)
 					ERROR("Unknown device");
 				break;
+
 			case 'c':
 				if(!strcmp(optarg, "code"))
 					cmdopts.page = CODE;
@@ -109,23 +115,33 @@ void parse_cmdline(int argc, char **argv) {
 				if(!cmdopts.page)
 					ERROR("Unknown memory type");
 				break;
+
+			case 'q':
+				cmdopts.query_device_id=8;  // 8= query for 8 bit device id
+				cmdopts.device = get_device_by_name("M25P80 @SOIC8");  // prime with canonical 8 bit part
+				break;
+
 			case 'r':
 				cmdopts.action = action_read;
 				cmdopts.filename = optarg;
 				break;
+
 			case 'w':
 				cmdopts.action = action_write;
 				cmdopts.filename = optarg;
 				break;
 
-		        case 'i':
+			case 'i':
 				cmdopts.icsp = MP_ICSP_ENABLE | MP_ICSP_VCC;
 				break;
-		        case 'I':
+
+			case 'I':
 				cmdopts.icsp = MP_ICSP_ENABLE;
 				break;
+
 			default:
 				print_help_and_exit(argv[0]);
+				break;
 		}
 	}
 }
@@ -198,7 +214,7 @@ void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int t
 	sprintf(status_msg, "Writing %s... ", name);
 
 	device_t *device = handle->device;
-	
+
 	int blocks_count = size / device->write_buffer_size;
 	if(size % device->read_buffer_size != 0) {
 		blocks_count++;
@@ -398,7 +414,7 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 			}
 			break;
 	}
-	minipro_end_transaction(handle); 
+	minipro_end_transaction(handle);
 }
 
 void action_write(const char *filename, minipro_handle_t *handle, device_t *device) {
@@ -457,18 +473,37 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 	}
 }
 
+void sig_handler(int signum)
+{
+	printf("\nAborting operation...\n");
+
+	signal(SIGINT, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+
+	// end any transaction that may be in progress
+	minipro_hard_reset();
+
+	raise(signum);
+}
+
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
-	if(!cmdopts.filename) {
-		print_help_and_exit(argv[0]);
-	}
-	if(cmdopts.action && !cmdopts.device) {
-		USAGE_ERROR("Device required");
+
+	if(8 != cmdopts.query_device_id) {
+		if(!cmdopts.filename) {
+			print_help_and_exit(argv[0]);
+		}
+		if(cmdopts.action && !cmdopts.device) {
+			USAGE_ERROR("Device required");
+		}
 	}
 
 	device_t *device = cmdopts.device;
 	minipro_handle_t *handle = minipro_open(device);
 	handle->icsp = cmdopts.icsp;
+
+	signal(SIGINT, sig_handler);
+	signal(SIGTERM, sig_handler);
 
 	// Printing system info
 	minipro_system_info_t info;
@@ -480,13 +515,20 @@ int main(int argc, char **argv) {
 		minipro_begin_transaction(handle);
 		unsigned int chip_id = minipro_get_chip_id(handle);
 		minipro_end_transaction(handle);
+
+		if(8 == cmdopts.query_device_id) {
+			printf("Device Id: 0x%02x\n", chip_id);
+			minipro_close(handle);
+			return(0);
+		}
+
 		if (chip_id == device->chip_id) {
-			printf("Chip ID OK: 0x%02x\n", chip_id);
+			printf("Device Id OK: 0x%02x\n", chip_id);
 		} else {
 			if (cmdopts.idcheck_continue)
-				printf("WARNING: Chip ID mismatch: expected 0x%02x, got 0x%02x\n", device->chip_id, chip_id);
+				printf("WARNING: Device Id mismatch: expected 0x%02x, got 0x%02x\n", device->chip_id, chip_id);
 			else
-				ERROR2("Invalid Chip ID: expected 0x%02x, got 0x%02x\n(use '-y' to continue anyway at your own risk)\n", device->chip_id, chip_id);
+				ERROR2("Invalid Device Id: expected 0x%02x, got 0x%02x\n(use '-y' to continue anyway at your own risk)\n", device->chip_id, chip_id);
 		}
 	}
 
@@ -523,7 +565,7 @@ int main(int argc, char **argv) {
 		  device->fuses=pic2_fuses;
 		  device->protocol_id&=0xFFFF;
 		  break;
-		  
+
 		case 0x63:
 		case 0x65:
 			device->fuses = pic_fuses;
