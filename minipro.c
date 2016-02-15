@@ -249,7 +249,7 @@ void minipro_get_system_info(minipro_handle_t *handle, minipro_system_info_t *ou
 	if(out->firmware < MP_FIRMWARE_VERSION) {
 		fprintf(stderr, "Warning: firmware is too old\n");
 	}
-	sprintf(out->firmware_str, "%d.%d.%d", buf[39], buf[4], buf[5]);
+	sprintf(out->firmware_str, "%02d.%d.%d", buf[39], buf[5], buf[4]);
 }
 
 void minipro_prepare_writing(minipro_handle_t *handle) {
