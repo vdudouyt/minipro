@@ -64,7 +64,7 @@ void print_devices_and_exit() {
 }
 
 void parse_cmdline(int argc, char **argv) {
-	char c;
+	int8_t c;
 	memset(&cmdopts, 0, sizeof(cmdopts));
 
 	while((c = getopt(argc, argv, "leuPvyr:w:p:c:iI")) != -1) {
