@@ -9,7 +9,7 @@ Autoelectric (http://www.autoelectric.cn/)
 * ZIF40 socket and ISP support
 * Vendor-specific MCU configuration bits
 * Chip ID verification
-* Overcurrency protection
+* Overcurrent protection
 * System testing
 
 ## Synopsis
