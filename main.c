@@ -20,6 +20,8 @@ struct {
         int erase;
         int protect_off;
         int protect_on;
+        int size_error;
+        int size_nowarn;
         int verify;
         int icsp;
 		int idcheck_continue;
@@ -42,6 +44,8 @@ void print_help_and_exit(char *progname) {
 		"			Possible values: code, data, config\n"
 		"	-i		Use ICSP\n"
 		"	-I		Use ICSP (without enabling Vcc)\n"
+		"	-s		Error if file size does not match memory size\n"
+		"	-S		No warning message for file size mismatch (can't combine with -s)\n"
 		"	-y		Do NOT error on ID mismatch\n";
 	fprintf(stderr, usage, VERSION, basename(progname));
 	exit(-1);
@@ -67,7 +71,7 @@ void parse_cmdline(int argc, char **argv) {
 	int8_t c;
 	memset(&cmdopts, 0, sizeof(cmdopts));
 
-	while((c = getopt(argc, argv, "leuPvyr:w:p:c:iI")) != -1) {
+	while((c = getopt(argc, argv, "leuPvyr:w:p:c:iIsS")) != -1) {
 		switch(c) {
 			case 'l':
 				print_devices_and_exit();
@@ -124,6 +128,15 @@ void parse_cmdline(int argc, char **argv) {
 		        case 'I':
 				cmdopts.icsp = MP_ICSP_ENABLE;
 				break;
+				
+			case 'S':
+			       cmdopts.size_nowarn=1;
+			       cmdopts.size_error=0;
+			       break;				
+			case 's':
+			        cmdopts.size_error=1;
+				break;			       
+				
 			default:
 				print_help_and_exit(argv[0]);
 		}
@@ -254,6 +267,7 @@ void write_page_file(minipro_handle_t *handle, const char *filename, unsigned in
 	if (fread(buf, 1, size, file) != size) {
 		ERROR("Short read");
 	}
+
 	write_page_ram(handle, buf, type, name, size);
 
 	fclose(file);
@@ -402,18 +416,40 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 }
 
 void action_write(const char *filename, minipro_handle_t *handle, device_t *device) {
+	int fsize;
 	switch(cmdopts.page) {
 		case UNSPECIFIED:
 		case CODE:
+			fsize=get_file_size(filename);
+			if (fsize != device->code_memory_size) {
+				if (cmdopts.size_error)
+					ERROR2("Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
+				else if (cmdopts.size_nowarn==0)
+					printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
+			}
+		break;
+/*		
 			if(get_file_size(filename) != device->code_memory_size) {
 				ERROR2("Incorrect file size: %d (needed %d)\n", get_file_size(filename), device->code_memory_size);
 			}
 			break;
+*/			
 		case DATA:
+		
+			fsize=get_file_size(filename);
+			if (fsize != device->data_memory_size) {
+				if (cmdopts.size_error)
+					ERROR2("Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
+				else if (cmdopts.size_nowarn==0) 
+					printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
+			}		
+			break;
+/*		
 			if(get_file_size(filename) != device->data_memory_size) {
 				ERROR2("Incorrect file size: %d (needed %d)\n", get_file_size(filename), device->data_memory_size);
 			}
 			break;
+*/			
 		case CONFIG:
 			break;
 	}
