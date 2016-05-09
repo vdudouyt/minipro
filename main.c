@@ -264,10 +264,12 @@ void write_page_file(minipro_handle_t *handle, const char *filename, unsigned in
 		ERROR("Can't malloc");
 	}
 
+/*
 	if (fread(buf, 1, size, file) != size) {
 		ERROR("Short read");
 	}
-
+*/	
+	fread(buf, 1, size, file);
 	write_page_ram(handle, buf, type, name, size);
 
 	fclose(file);
