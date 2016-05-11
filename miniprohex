@@ -120,10 +120,10 @@ esac
 if [ $RWOPT == -w ]
 then
 $PRECVT
-minipro $OPTS $RWOPT $RFILE
+./minipro $OPTS $RWOPT $RFILE
 else
 # If reading, execute and then do post cmd
-minipro $OPTS $RWOPT $RFILE
+./minipro $OPTS $RWOPT $RFILE
 $POSTCVT
 fi
 
