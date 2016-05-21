@@ -369,7 +369,10 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 
 	/* Downloading data from chip*/
 	unsigned char *chip_data = malloc(size);
-	read_page_ram(handle, chip_data, type, name, file_size);
+	if (cmdopts.size_error)
+	  read_page_ram(handle, chip_data, type, name, file_size);
+	else
+	  read_page_ram(handle, chip_data, type, name, size);
 	minipro_end_transaction(handle);
 
 	unsigned char c1, c2;
