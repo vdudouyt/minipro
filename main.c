@@ -44,7 +44,7 @@ void print_help_and_exit(char *progname) {
 		"			Possible values: code, data, config\n"
 		"	-i		Use ICSP\n"
 		"	-I		Use ICSP (without enabling Vcc)\n"
-		"	-s		Error if file size does not match memory size\n"
+		"	-s		Do NOT error on file size mismatch (only a warning)\n"
 		"	-S		No warning message for file size mismatch (can't combine with -s)\n"
 		"	-y		Do NOT error on ID mismatch\n";
 	fprintf(stderr, usage, VERSION, basename(progname));
@@ -131,7 +131,7 @@ void parse_cmdline(int argc, char **argv) {
 				
 			case 'S':
 			       cmdopts.size_nowarn=1;
-			       cmdopts.size_error=0;
+			       cmdopts.size_error=1;
 			       break;				
 			case 's':
 			        cmdopts.size_error=1;
@@ -424,7 +424,7 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 		case CODE:
 			fsize=get_file_size(filename);
 			if (fsize != device->code_memory_size) {
-				if (cmdopts.size_error)
+				if (!cmdopts.size_error)
 					ERROR2("Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
 				else if (cmdopts.size_nowarn==0)
 					printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
@@ -440,7 +440,7 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 		
 			fsize=get_file_size(filename);
 			if (fsize != device->data_memory_size) {
-				if (cmdopts.size_error)
+				if (!cmdopts.size_error)
 					ERROR2("Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
 				else if (cmdopts.size_nowarn==0) 
 					printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
