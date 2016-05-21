@@ -414,6 +414,7 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 			if(device->fuses) {
 				read_fuses(handle, config_filename, device->fuses);
 			}
+			if(cmdopts.page) break; 
 			break;
 	}
 	minipro_end_transaction(handle); 
