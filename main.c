@@ -264,12 +264,11 @@ void write_page_file(minipro_handle_t *handle, const char *filename, unsigned in
 		ERROR("Can't malloc");
 	}
 
-/*
-	if (fread(buf, 1, size, file) != size) {
+
+	if (fread(buf, 1, size, file) != size && !cmdopts.size_error) {
 		ERROR("Short read");
 	}
-*/	
-	fread(buf, 1, size, file);
+	
 	write_page_ram(handle, buf, type, name, size);
 
 	fclose(file);
@@ -430,12 +429,6 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 					printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
 			}
 		break;
-/*		
-			if(get_file_size(filename) != device->code_memory_size) {
-				ERROR2("Incorrect file size: %d (needed %d)\n", get_file_size(filename), device->code_memory_size);
-			}
-			break;
-*/			
 		case DATA:
 		
 			fsize=get_file_size(filename);
@@ -446,12 +439,6 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 					printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
 			}		
 			break;
-/*		
-			if(get_file_size(filename) != device->data_memory_size) {
-				ERROR2("Incorrect file size: %d (needed %d)\n", get_file_size(filename), device->data_memory_size);
-			}
-			break;
-*/			
 		case CONFIG:
 			break;
 	}
