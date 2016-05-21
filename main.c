@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <signal.h>
 #include "main.h"
 #include "minipro.h"
 #include "database.h"
@@ -54,6 +55,7 @@ void print_help_and_exit(char *progname) {
 void print_devices_and_exit() {
 	if(isatty(STDOUT_FILENO)) {
 		// stdout is a terminal, opening pager
+		signal(SIGINT, SIG_IGN);
 		char *pager_program = getenv("PAGER");
 		if(!pager_program) pager_program = "less";
 		FILE *pager = popen(pager_program, "w");
