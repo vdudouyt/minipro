@@ -9,11 +9,13 @@ TESTS=$(wildcard tests/test_*.c);
 OBJCOPY=objcopy
 VERSION=0.1
 
+PREFIX=/usr/local
+
 DIST_DIR = $(MINIPRO)-$(VERSION)
-BIN_DIR=$(DESTDIR)/usr/bin/
-UDEV_RULES_DIR=$(DESTDIR)/usr/lib/udev/rules.d/
-MAN_DIR=$(DESTDIR)/usr/share/man/man1/
-COMPLETIONS_DIR=$(DESTDIR)/usr/share/bash_completion.d/
+BIN_DIR=$(DESTDIR)$(PREFIX)/bin/
+UDEV_RULES_DIR=$(DESTDIR)$(PREFIX)/lib/udev/rules.d/
+MAN_DIR=$(DESTDIR)$(PREFIX)/share/man/man1/
+COMPLETIONS_DIR=$(DESTDIR)$(PREFIX)/share/bash_completion.d/
 
 libusb_CFLAGS = `pkg-config --cflags libusb-1.0`
 libusb_LIBS = `pkg-config --libs libusb-1.0`
