@@ -54,7 +54,7 @@ static void msg_init(unsigned char *out_buf, unsigned char cmd, device_t *device
 	format_int(&(out_buf[9]), device->opts3, 2, MP_LITTLE_ENDIAN);
 
 	out_buf[11] = icsp;
-	format_int(&(out_buf[12]), device->code_memory_size, 2, MP_LITTLE_ENDIAN);
+	format_int(&(out_buf[12]), device->code_memory_size, 4, MP_LITTLE_ENDIAN);
 }
 
 static unsigned int msg_transfer(minipro_handle_t *handle, unsigned char *buf, int length, int direction) {
