@@ -9,5 +9,13 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+DESTDIR = debian/minipro
+override_dh_auto_install:
+	make install \
+	    DESTDIR=$(DESTDIR) \
+	    PREFIX=/usr \
+	    UDEV_RULES_DIR=$(DESTDIR)/lib/udev/rules.d \
+	    COMPLETIONS_DIR=$(DESTDIR)/usr/share/bash-completion/completions
+
 %:
-	dh $@ 
+	dh $@
