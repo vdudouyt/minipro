@@ -1,17 +1,40 @@
-#include "database.h"
+#include <sys/types.h>
+#include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
 #include <strings.h>
+#include "database.h"
 
-device_t devices[] = {
+static device_t devices[] = {
 	#include "devices.h"
 	{ .name = NULL },
 };
 
-device_t *get_device_by_name(const char *name) {
-	device_t *device;
-	for(device = &(devices[0]); device[0].name; device = &(device[1])) {
-		if(!strcasecmp(name, device->name))
-			return(device);
+
+device_p
+dev_db_get_by_name(const char *name) {
+	device_p dev;
+
+	for (dev = devices; dev->name; dev ++) {
+		if (!strcasecmp(name, dev->name))
+			return (dev);
 	}
-	return NULL;
+
+	return (NULL);
+}
+
+void
+dev_db_dump_flt(const char *dname) {
+	size_t dname_size = 0;
+	device_p dev;
+
+	if (NULL != dname) {
+		dname_size = strnlen(dname, DEVICE_NAME_MAX);
+	}
+	for (dev = devices; dev->name; dev ++) {
+		if (0 != dname_size &&
+		    strncasecmp(dev->name, dname, dname_size))
+			continue;
+		printf("%s\n", dev->name);
+	}
 }

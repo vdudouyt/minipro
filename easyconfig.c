@@ -15,6 +15,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+#include <sys/types.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,12 +28,12 @@
 
 #define LINE_LENGTH 200 
 
-FILE *pFile;
-char param_value[50];
-char* config_path;
-int config_lines_qty=0;
+static FILE *pFile;
+static char param_value[50];
+static char* config_path;
+static int config_lines_qty=0;
 
-struct  conf{ 
+static struct conf { 
 	char config_line[LINE_LENGTH];
 	char param_name[40]; 
 	char param_value[40];
@@ -107,69 +109,81 @@ int Config_open(const char *path) {
 
 char *Config_get_str(const char *par_name) {
 	int i;
-	for (i=0;i<config_lines_qty;i++) {
-		
-		if (!strcmp(config_content[i].param_name,par_name)) {
-			if (strlen(param_value) >= sizeof(config_content[i].param_value)) { break; }
-			strcpy(param_value,config_content[i].param_value);
-			return param_value;
-		}
+
+	for (i = 0; i < config_lines_qty; i ++) {
+		if (strcmp(config_content[i].param_name,par_name))
+			continue;
+		if (strlen(param_value) >= sizeof(config_content[i].param_value))
+			break;
+		strcpy(param_value,config_content[i].param_value);
+		return (param_value);
 	}
-	return NULL;
+	return (NULL);
 }
 
 int Config_set_str(const char *par_name, const char *value) {
 	int i;
 
-	for (i=0;i<config_lines_qty;i++) { 
-		if (!strcmp(config_content[i].param_name,par_name)) {
-			if (strlen(param_value) >= sizeof(config_content[i].param_value)) { return -1; }
-			strcpy(config_content[i].param_value, value);
-			if (strlen(par_name) + strlen(value) + 4 >= sizeof(config_content[i].config_line)) { return -1; }
-			sprintf(config_content[i].config_line,"%s = %s\n",par_name,value);
-			return 0;
-		}
+	for (i = 0; i < config_lines_qty; i ++) { 
+		if (strcmp(config_content[i].param_name,par_name))
+			continue;
+		if (strlen(param_value) >= sizeof(config_content[i].param_value))
+			return (-1);
+		strcpy(config_content[i].param_value, value);
+		if ((strlen(par_name) + strlen(value) + 4) >= sizeof(config_content[i].config_line))
+			return (-1);
+		sprintf(config_content[i].config_line,"%s = %s\n",par_name,value);
+		return (0);
 	}
 
-	if (strlen(par_name) + strlen(value) + 4 >= sizeof(config_content[i].config_line)) { return -1; }
+	if ((strlen(par_name) + strlen(value) + 4) >= sizeof(config_content[i].config_line))
+		return (-1);
 	sprintf(config_content[i].config_line,"%s = %s\n",par_name,value);
-	if (strlen(par_name) >= sizeof(config_content[i].param_name)) { return -1; }
+	if (strlen(par_name) >= sizeof(config_content[i].param_name))
+		return (-1);
 	strcpy(config_content[i].param_name, par_name);
-	if (strlen(param_value) >= sizeof(config_content[i].param_value)) { return -1; }
+	if (strlen(param_value) >= sizeof(config_content[i].param_value))
+		return (-1);
 	strcpy(config_content[i].param_value, value);
 	
-	config_lines_qty++;
+	config_lines_qty ++;
 
-	return 0;
+	return (0);
 }
 
 int Config_get_int(const char *par_name) {
-	unsigned int intval;
+	uint32_t intval;
 	char *strval = Config_get_str(par_name);
+
 	if (strval == NULL)
-		return -1;
-	if(!sscanf(strval, "0x%04x", &intval) && !sscanf(strval, "%d", &intval)) {
-		return -1;
+		return (-1);
+
+	if (!sscanf(strval, "0x%04x", &intval) &&
+	    !sscanf(strval, "%d", &intval)) {
+		return (-1);
 	}
-	return(intval);
+
+	return (intval);
 }
 
-int Config_set_int(const char *par_name, unsigned int value) {
-	char strval[16];
+int Config_set_int(const char *par_name, uint32_t value) {
+	static char strval[16];
+
 	sprintf(strval, "0x%04x", value);
-	return Config_set_str(par_name, strval);
+
+	return (Config_set_str(par_name, strval));
 }
 
 int Config_close() {
-	int i=0;
-	pFile=fopen(config_path,"w");
-	
-	while (i<config_lines_qty) {
-		fputs (config_content[i].config_line,pFile);
-		
+	int i = 0;
+
+	pFile = fopen(config_path, "w");
+	while (i < config_lines_qty) {
+		fputs(config_content[i].config_line, pFile);
 		i++;
 	}
 	fclose(pFile);
 	free (config_content);
-	return 0;
+
+	return (0);
 }

@@ -15,13 +15,16 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+#include <sys/types.h>
+#include <inttypes.h>
+
 int Config_init(const char *conf_name);
 
 char *Config_get_str(const char *par_name);
 int Config_set_str(const char *par_name, const char *par_value);
 
 int Config_get_int(const char *par_name);
-int Config_set_int(const char *par_name, unsigned int value);
+int Config_set_int(const char *par_name, uint32_t value);
 
 int Config_open(const char *path);
 int Config_close();

@@ -1,36 +1,39 @@
 #ifndef __DATABASE_H
 #define __DATABASE_H
 
+#include <sys/types.h>
+#include <inttypes.h>
 #include "fuses.h"
 
-typedef struct device {
-	const char *name;
-	unsigned int protocol_id;
-	unsigned int variant;
-	unsigned int addressing_mode;
-	unsigned int read_buffer_size;
-	unsigned int write_buffer_size;
+
+typedef struct device_s {
+	const char	*name;
+	uint8_t		protocol_id;
+	uint8_t		variant;
+	uint32_t	addressing_mode;
+	uint32_t	read_buffer_size;
+	uint32_t	write_buffer_size;
 	enum { BYTE, WORD, BIT } word_size;
-	
-	unsigned int code_memory_size; // Presenting for every device	
-	unsigned int data_memory_size;
-	unsigned int data_memory2_size;
-	unsigned int chip_id; // A vendor-specific chip ID (i.e. 0x1E9502 for ATMEGA48)
-	unsigned int chip_id_bytes_count : 3;
-	unsigned int opts1;
-	unsigned int opts2;
-	unsigned int opts3;
-	unsigned int opts4;
-	unsigned int package_details; // pins count or image ID for some devices
-	unsigned int write_unlock;
 
-	fuse_decl_t *fuses; // Configuration bytes that's presenting in some architectures
-} device_t;
+	uint32_t	code_memory_size; /* Presenting for every device. */
+	uint32_t	data_memory_size;
+	uint32_t	data_memory2_size;
+	uint32_t	chip_id;	/* A vendor-specific chip ID (i.e. 0x1E9502 for ATMEGA48). */
+	uint32_t	chip_id_bytes_count:3;
+	uint16_t	opts1;
+	uint16_t	opts2;
+	uint16_t	opts3;
+	uint32_t	opts4;
+	uint32_t	package_details; /* Pins count or image ID for some devices. */
+	uint8_t		write_unlock;
 
-#define WORD_SIZE(device) (((device)->opts4 & 0xFF000000) == 0x01000000 ? 2 : 1)
+	fuse_decl_t	*fuses;		/* Configuration bytes that's presenting in some architectures. */
+} device_t, *device_p;
 
-extern device_t devices[];
+#define WORD_SIZE(__dev)	(((__dev)->opts4 & 0xFF000000) == 0x01000000 ? 2 : 1)
+#define DEVICE_NAME_MAX		64 /* Max device name len. */
 
-device_t *get_device_by_name(const char *name);
+device_p	dev_db_get_by_name(const char *name);
+void		dev_db_dump_flt(const char *dname);
 
 #endif

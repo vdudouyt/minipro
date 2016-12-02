@@ -1,3 +1,5 @@
+#include <sys/types.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include "fuses.h"
 
