@@ -27,4 +27,4 @@ int Config_get_int(const char *par_name);
 int Config_set_int(const char *par_name, uint32_t value);
 
 int Config_open(const char *path);
-int Config_close();
+int Config_close(void);

@@ -37,7 +37,7 @@ print_device_info(device_p dev) {
 		printf(" Bits");
 		break;
 	default:
-		ERROR2("Unknown memory shape: 0x%x\n", (dev->opts4 & 0xFF000000));
+		ERROR_FMT("Unknown memory shape: 0x%x\n", (dev->opts4 & 0xFF000000));
 	}
 	if (dev->data_memory_size) {
 		printf(" + %d Bytes", dev->data_memory_size);
