@@ -27,10 +27,10 @@ version:
 	@echo "#define VERSION \"$(VERSION)\"" > version.h
 
 $(MINIPRO): $(HEADERS) $(COMMON_OBJECTS) main.o
-	$(CC) -o $(MINIPRO) $(COMMON_OBJECTS) main.o $(LIBS)
+	$(CC) -o $(MINIPRO) $(COMMON_OBJECTS) main.o $(LIBS) $(LDFLAGS)
 
 $(MINIPRO_QUERY_DB): $(HEADERS) $(COMMON_OBJECTS) minipro-query-db.o
-	$(CC) -o $(MINIPRO_QUERY_DB) $(COMMON_OBJECTS) minipro-query-db.o $(LIBS) 
+	$(CC) -o $(MINIPRO_QUERY_DB) $(COMMON_OBJECTS) minipro-query-db.o $(LIBS) $(LDFLAGS)
 
 clean:
 	rm -f $(OBJECTS) $(PROGS)
