@@ -814,8 +814,8 @@ minipro_verify_buf(minipro_p mp, uint8_t cmd,
 
 diff_out:
 	(*err_offset) = (diff_off + (buf_size - to_read));
-	(*chip_val) = mp->read_block_buf[(*err_offset)];
-	(*buf_val) = buf[(*err_offset)];
+	(*chip_val) = mp->read_block_buf[diff_off];
+	(*buf_val) = buf[diff_off];
 err_out:
 	minipro_end_transaction(mp);
 	return (error);
