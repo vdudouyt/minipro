@@ -159,15 +159,6 @@ U32TO8n_LITTLE(const uint32_t v, size_t size, uint8_t *p) {
 
 
 static inline void *
-mem_find(const void *buf, const size_t buf_size, const void *what_find,
-    const size_t what_find_size) {
-
-	if (NULL == buf || NULL == what_find || 0 == what_find_size)
-		return (NULL);
-	return (memmem(buf, buf_size, what_find, what_find_size));
-}
-
-static inline void *
 mem_chr_ptr(const void *ptr, const void *buf, const size_t size,
     const uint8_t what_find) {
 	size_t offset;
@@ -181,7 +172,7 @@ mem_chr_ptr(const void *ptr, const void *buf, const size_t size,
 }
 
 /* Internal staff. */
-/* abc="z x y" or abc=zxy */
+/* abc=zxy */
 static int
 buf_get_named_line_val32(const uint8_t *buf, size_t buf_size,
     const char *val_name, size_t val_name_size, uint32_t *value) {
@@ -192,16 +183,20 @@ buf_get_named_line_val32(const uint8_t *buf, size_t buf_size,
 		return (EINVAL);
 
 	for (;;) {
-		ptr = mem_find(buf, buf_size, val_name, val_name_size);
+		ptr = memmem(buf, buf_size, val_name, val_name_size);
 		if (NULL == ptr)
 			return (-1);
+		/* Is start from new line? */
 		if (buf < ptr && (
-		    0x0a != (*ptr) && /* LF */
-		    0x0d != (*ptr) && /* CR */
-		    ' ' != (*ptr)))
+		    0x0a != ptr[-1] && /* LF */
+		    0x0d != ptr[-1] && /* CR */
+		    '\t' != ptr[-1] && /* TAB */
+		    ' ' != ptr[-1]))
 			continue; /* Not mutch, skip. */
 		ptr += val_name_size;
-		if (' ' == (*ptr) ||
+		/* Is this name not part of another name? */
+		if ('\t' == (*ptr) ||
+		    ' ' == (*ptr) ||
 		    '=' == (*ptr))
 			break;
 	}
@@ -211,13 +206,14 @@ buf_get_named_line_val32(const uint8_t *buf, size_t buf_size,
 	end = mem_chr_ptr(ptr, buf, buf_size, 0x0a/* LF */);
 	if (NULL == end) {
 		end = (buf + buf_size);
-	} else if (end > ptr && 0x0d == end[-1]) { /* CR */
+	} else if (ptr < end && 0x0d == end[-1]) { /* CR */
 		end --;
 	}
 	/* Find value start. */
 	for (; ptr < end && (' ' == (*ptr) || '=' == (*ptr) || '\t' == (*ptr)); ptr ++)
 		;
-
+	if (ptr == end)
+		return (EINVAL);
 	(*value) = UStr8HexToUNum32(ptr, (size_t)(end - ptr));
 
 	return (0);
@@ -644,7 +640,7 @@ minipro_read_fuses(minipro_p mp, uint8_t cmd,
 		return (EINVAL);
 	msg_chip_hdr_set(mp, cmd, 18);
 	/* Note that PICs with 1 config word will show buf_size == 2. (for pic2_fuses) */
-	mp->msg[2] = ((MP_CMD_READ_CFG == cmd && 4 == buf_size) ? 2 : 1);
+	mp->msg[2] = ((MP_CMD_READ_CFG == cmd && 4 == buf_size) ? 0x02 : 0x01);
 	mp->msg[5] = 0x10;
 	MP_RET_ON_ERR(msg_send(mp, mp->msg, 18, NULL));
 	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd)); /* rcvd == (7 + buf_size) */
@@ -681,7 +677,7 @@ minipro_write_fuses(minipro_p mp, uint8_t cmd,
 	/* The device waits us to get the status now. */
 	msg_chip_hdr_set(mp, cmd, 18);
 	/* Note that PICs with 1 config word will show buf_size == 2. (for pic2_fuses) */
-	mp->msg[2] = ((MP_CMD_READ_CFG == cmd && 4 == buf_size) ? 2 : 1);
+	mp->msg[2] = ((MP_CMD_READ_CFG == cmd && 4 == buf_size) ? 0x02 : 0x01);
 	memcpy(&mp->msg[7], buf, buf_size);
 	MP_RET_ON_ERR(msg_send(mp, mp->msg, 18, NULL));
 	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd));

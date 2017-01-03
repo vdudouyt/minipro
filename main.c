@@ -20,7 +20,7 @@
 #include "StrHexToNum.h"
 
 
-#define MAX_CHIP_FILE_SIZE	(1024 * 1024 * 1024)
+#define MAX_CHIP_FILE_SIZE	(1024 * 1024 * 1024) /* 1Gb */
 
 #define LOG_ERR(__error, __descr)					\
 	if (0 != (__error))						\
@@ -372,7 +372,7 @@ main(int argc, char **argv) {
 	}
 
 	/* Open MiniPro. */
-	error = minipro_open(MP_TL866_VID, MP_TL866_PID, 1, &mp);
+	error = minipro_open(MP_TL866_VID, MP_TL866_PID, (0 == cmd_opts.quiet), &mp);
 	if (0 != error)
 		return (error);
 	/* Check and print device info. */
@@ -485,7 +485,7 @@ main(int argc, char **argv) {
 
 	/* Do action/work. */
 	switch (cmd_opts.action) {
-	case 0: /* read */
+	case 0: /* read. */
 		snprintf(status_msg, sizeof(status_msg), "Reading %s... ",
 		    mp_chip_page_str[cmd_opts.page]);
 		error = minipro_page_read(mp,
@@ -508,8 +508,8 @@ main(int argc, char **argv) {
 		}
 		close(fd);
 		break;
-	case 1: /* verify */
-	case 2: /* write */
+	case 1: /* verify. */
+	case 2: /* write. */
 		error = get_file_size(cmd_opts.file_name, &file_size);
 		if (0 != error) {
 			LOG_ERR(error, "Fail on get file size.");
@@ -538,7 +538,7 @@ main(int argc, char **argv) {
 			LOG_ERR(error, "Fail on file read.");
 			goto err_out;
 		}
-		if (2 == cmd_opts.action) { /* write */
+		if (2 == cmd_opts.action) { /* write. */
 			snprintf(status_msg, sizeof(status_msg), "Writing %s... ",
 			    mp_chip_page_str[cmd_opts.page]);
 			error = minipro_page_write(mp,
@@ -548,10 +548,10 @@ main(int argc, char **argv) {
 				LOG_ERR(error, "Fail on chip write.");
 				goto err_out;
 			}
-			if (0 == cmd_opts.post_wr_verify) /* verify disabled */
+			if (0 == cmd_opts.post_wr_verify) /* Verify disabled. */
 				break;
 		}
-		/* verify */
+		/* verify. */
 		snprintf(status_msg, sizeof(status_msg), "Verifying %s... ",
 		    mp_chip_page_str[cmd_opts.page]);
 		error = minipro_page_verify(mp, cmd_opts.page, cmd_opts.address,
@@ -561,9 +561,20 @@ main(int argc, char **argv) {
 			LOG_ERR(error, "Fail on chip read.");
 			goto err_out;
 		}
-		if (err_offset < tr_size) {
-			fprintf(stderr, "\nVerification failed at 0x%02zx: 0x%02x (file) != 0x%02x (chip).\n",
-			    err_offset, buf_val, chip_val);
+		if (err_offset < tr_size) { /* Not euqual. */
+			switch (cmd_opts.page) {
+			case MP_CHIP_PAGE_CODE:
+			case MP_CHIP_PAGE_DATA:
+				fprintf(stderr, "\nVerification failed at 0x%02zx: 0x%02x (file) != 0x%02x (chip).\n",
+				    err_offset, buf_val, chip_val);
+				break;
+			case MP_CHIP_PAGE_CONFIG:
+				fprintf(stderr, "\nVerification failed fuse 0x%02zx - %s: 0x%02x (file) != 0x%02x (chip).\n",
+				    err_offset,
+				    chip->fuses[err_offset].name,
+				    buf_val, chip_val);
+				break;
+			}
 		}
 		break;
 	default:
