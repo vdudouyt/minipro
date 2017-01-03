@@ -5,7 +5,6 @@ PROGS=minipro
 MINIPRO=minipro
 MINIPROHEX=miniprohex
 TESTS=$(wildcard tests/test_*.c);
-OBJCOPY=objcopy
 VERSION=0.1
 
 PREFIX=/usr/local
@@ -19,8 +18,8 @@ COMPLETIONS_DIR=$(DESTDIR)$(PREFIX)/share/bash_completion.d/
 libusb_CFLAGS = `pkg-config --cflags libusb-1.0`
 libusb_LIBS = `pkg-config --libs libusb-1.0`
 
-override CFLAGS += $(libusb_CFLAGS)
-override LIBS += $(libusb_LIBS)
+CFLAGS += $(libusb_CFLAGS)
+LIBS += $(libusb_LIBS)
 
 all: version $(OBJECTS) $(PROGS)
 
@@ -28,7 +27,7 @@ version:
 	@echo "#define VERSION \"$(VERSION)\"" > version.h
 
 minipro: $(COMMON_OBJECTS) main.o
-	$(CC) $(COMMON_OBJECTS) main.o $(LIBS) -o $(MINIPRO)
+	$(CC) $(COMMON_OBJECTS) main.o $(LIBS) $(LDFLAGS) -o $(MINIPRO)
 
 clean:
 	rm -f $(OBJECTS) $(PROGS) version.h

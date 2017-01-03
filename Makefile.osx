@@ -5,19 +5,13 @@
 # This Makefile assumes than libusb-1.0.x is installed and visible for compiler
 #
 
-VERSION			= 0.1
-CC				= clang
-
-HEADERS			= byte_utils.h database.h devices.h easyconfig.h error.h fuses.h main.h minipro.h
-COMMON_OBJECTS	= byte_utils.o database.o easyconfig.o fuses.o minipro.o
-OBJECTS			= $(COMMON_OBJECTS) main.o minipro-query-db.o
-
-MINIPRO			= minipro
-MINIPRO_QUERY_DB= minipro-query-db
-PROGS			= $(MINIPRO) $(MINIPRO_QUERY_DB)
-
-CFLAGS			= -g -O0 -Wall
-LIBS			= -lusb-1.0 -framework Foundation -framework IOKit
+VERSION		= 0.1
+HEADERS		= database.h devices.h minipro.h StrHexToNum.h
+COMMON_OBJECTS	= database.o minipro.o
+OBJECTS		= $(COMMON_OBJECTS) main.o
+MINIPRO		= minipro
+PROGS		= $(MINIPRO)
+LIBS		= -lusb-1.0 -framework Foundation -framework IOKit
 
 .PHONY: all clean install
 
@@ -27,26 +21,21 @@ version:
 	@echo "#define VERSION \"$(VERSION)\"" > version.h
 
 $(MINIPRO): $(HEADERS) $(COMMON_OBJECTS) main.o
-	$(CC) -o $(MINIPRO) $(COMMON_OBJECTS) main.o $(LIBS)
-
-$(MINIPRO_QUERY_DB): $(HEADERS) $(COMMON_OBJECTS) minipro-query-db.o
-	$(CC) -o $(MINIPRO_QUERY_DB) $(COMMON_OBJECTS) minipro-query-db.o $(LIBS) 
+	$(CC) -o $(MINIPRO) $(COMMON_OBJECTS) main.o $(LIBS) $(LDFLAGS)
 
 clean:
 	rm -f $(OBJECTS) $(PROGS)
 
-INSTALL_DIR		= /usr/local
+INSTALL_DIR	= /usr/local
 INSTALL_BIN_DIR	= $(INSTALL_DIR)/bin
 INSTALL_MAN_DIR	= $(INSTALL_DIR)/share/man/man1
 
 install: all $(INSTALL_DIR) $(INSTALL_BIN_DIR) $(INSTALL_MAN_DIR)
 	cp $(MINIPRO) $(INSTALL_BIN_DIR)/
-	cp $(MINIPRO_QUERY_DB) $(INSTALL_BIN_DIR)/
 	cp man/minipro.1 $(INSTALL_MAN_DIR)
 	
 uninstall:
 	rm -f $(INSTALL_BIN_DIR)/$(MINIPRO)
-	rm -f $(INSTALL_BIN_DIR)/$(MINIPRO_QUERY_DB)
 	rm -f $(INSTALL_MAN_DIR)/minipro.1
 
 $(INSTALL_DIR):
