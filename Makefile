@@ -1,9 +1,8 @@
 .PHONY: all clean install test
-COMMON_OBJECTS=byte_utils.o database.o minipro.o fuses.o easyconfig.o
-OBJECTS=$(COMMON_OBJECTS) main.o minipro-query-db.o
-PROGS=minipro minipro-query-db
+COMMON_OBJECTS=database.o minipro.o
+OBJECTS=$(COMMON_OBJECTS) main.o
+PROGS=minipro
 MINIPRO=minipro
-MINIPRO_QUERY_DB=minipro-query-db
 MINIPROHEX=miniprohex
 TESTS=$(wildcard tests/test_*.c);
 OBJCOPY=objcopy
@@ -20,7 +19,6 @@ COMPLETIONS_DIR=$(DESTDIR)$(PREFIX)/share/bash_completion.d/
 libusb_CFLAGS = `pkg-config --cflags libusb-1.0`
 libusb_LIBS = `pkg-config --libs libusb-1.0`
 
-CFLAGS = -g -O0
 override CFLAGS += $(libusb_CFLAGS)
 override LIBS += $(libusb_LIBS)
 
@@ -31,9 +29,6 @@ version:
 
 minipro: $(COMMON_OBJECTS) main.o
 	$(CC) $(COMMON_OBJECTS) main.o $(LIBS) -o $(MINIPRO)
-
-minipro-query-db: $(COMMON_OBJECTS) minipro-query-db.o
-	$(CC) $(COMMON_OBJECTS) minipro-query-db.o $(LIBS) -o $(MINIPRO_QUERY_DB)
 
 clean:
 	rm -f $(OBJECTS) $(PROGS) version.h
@@ -48,7 +43,6 @@ install:
 	mkdir -p $(MAN_DIR)
 	mkdir -p $(COMPLETIONS_DIR)
 	cp $(MINIPRO) $(BIN_DIR)
-	cp $(MINIPRO_QUERY_DB) $(BIN_DIR)
 	cp $(MINIPROHEX) $(BIN_DIR)
 	cp udev/rules.d/80-minipro.rules $(UDEV_RULES_DIR)
 	cp bash_completion.d/minipro $(COMPLETIONS_DIR)
@@ -56,7 +50,6 @@ install:
 
 uninstall:
 	rm -f $(BIN_DIR)/$(MINIPRO)
-	rm -f $(BIN_DIR)/$(MINIPRO_QUERY_DB)
 	rm -f $(BIN_DIR)/$(MINIPROHEX)
 	rm -f $(UDEV_RULES_DIR)/80-minipro.rules
 	rm -f $(COMPLETIONS_DIR)/minipro
@@ -79,4 +72,3 @@ dist: distclean
 	@echo
 	@echo "$(DIST_DIR).tar.gz created"
 	@echo
-	

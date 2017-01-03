@@ -1,596 +1,581 @@
+
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <getopt.h>
 #include <libgen.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "version.h"
 #include "minipro.h"
 #include "database.h"
-#include "byte_utils.h"
-#include "easyconfig.h"
-#include "error.h"
+#include "StrHexToNum.h"
 
 
-static struct {
-	void (*action) (const char *, minipro_p handle, device_p device);
-	char *filename;
-	device_p device;
-	enum { UNSPECIFIED = 0, CODE, DATA, CONFIG } page;
-	int erase;
-	int protect_off;
-	int protect_on;
-	int size_error;
-	int size_nowarn;
-	int verify;
-	uint8_t icsp;
-	int idcheck_continue;
-} cmdopts;
+#define MAX_CHIP_FILE_SIZE	(1024 * 1024 * 1024)
+
+#define LOG_ERR(__error, __descr)					\
+	if (0 != (__error))						\
+		fprintf(stderr, "%s:%i %s: error: %i - %s: %s\n",	\
+		    __FILE__, __LINE__, __FUNCTION__,			\
+		    (__error), strerror((__error)), (__descr))
+
+#define LOG_ERR_FMT(__error, __fmt, args...)				\
+	    if (0 != (__error))						\
+		fprintf(stderr, "%s:%i %s: error: %i - %s: " __fmt "\n", \
+		    __FILE__, __LINE__, __FUNCTION__,			\
+		    (__error), strerror((__error)), ##args)
+
+#define sstrlen(__str)	((NULL == (__str)) ? 0 : strlen((__str)))
 
 
-void	action_read(const char *filename, minipro_p handle, device_p device);
-void	action_write(const char *filename, minipro_p handle, device_p device);
 
+typedef struct command_line_options_s {
+	int		action;
+	char 		*file_name;
+	uint32_t	write_flags;
+	int		post_wr_verify;
+	off_t		file_offset;
+	char		*chip_name;
+	uint32_t	chip_id;
+	uint8_t		chip_id_size;
+	uint32_t	address;
+	size_t		size;
+	int		page;
+	uint8_t		icsp;
+	int		chip_id_check_no_fail;
+	int		size_error;
+	int		size_error_no_warn;
+	int		quiet;
+} cmd_opts_t, *cmd_opts_p;
+
+
+static struct option lopts[] = {
+	{ "read",	required_argument,	NULL,	'r'	},
+	{ "verify",	required_argument,	NULL,	0	},
+	{ "write",	required_argument,	NULL,	'w'	},
+	{ "no-erase",	no_argument,		NULL,	'e'	},
+	{ "no-pre-unprotect",	no_argument,	NULL,	'u'	},
+	{ "no-post-protect",	no_argument,	NULL,	'P'	},
+	{ "no-post-verify",	no_argument,	NULL,	'v'	},
+	{ "file-offset", required_argument,	NULL,	0	},
+	{ "chip",	required_argument,	NULL,	'p'	},
+	{ "chip-id",	required_argument,	NULL,	0	},
+	{ "addr",	required_argument,	NULL,	0	},
+	{ "size",	required_argument,	NULL,	0	},
+	{ "page",	required_argument,	NULL,	'c'	},
+	{ "icsp",	no_argument,		NULL,	'I'	},
+	{ "icsp-vcc",	no_argument,		NULL,	'i'	},
+	{ "db-dump",	optional_argument,	NULL,	'l'	},
+	{ "chip-id-check-no-fail", no_argument,	NULL,	'y'	},
+	{ "no-size-error", no_argument,		NULL,	's'	},
+	{ "no-size-error-warn", no_argument,	NULL,	'S'	},
+	{ "quiet",	no_argument,		NULL,	0	},
+	{ "help",	no_argument,		NULL,	'?'	},
+	{ NULL,		0,			NULL,	0	}
+};
+
+static const char *lopts_descr[] = {
+	"<file_name>		Read memory",
+	"<file_name>		Verify memory",
+	"<file_name>		Write memory",
+	"			Do NOT erase chip",
+	"		Do NOT disable write-protect before write",
+	"		Do NOT enable write-protect after write",
+	"		Do NOT verify after write",
+	"<offset>		File offset (hex)",
+	"<chip>		Specify chip (use quotes)",
+	"<chip_id>		Specify chip ID (hex)",
+	"<chip_addr>		Start pos for read/verify/write",
+	"<size>			Size to read/verify/write (hex)",
+	"<page>		Specify memory page type (optional)\n"
+	"					Possible values: code, data, config",
+	"			Use ICSP (without enabling Vcc)",
+	"			Use ICSP",
+	"			List all supported devices",
+	"	Do NOT error on ID mismatch",
+	"		Do NOT error on file size mismatch (only a warning)",
+	"	No warning message for file size mismatch (can't combine with -s)",
+	"				Less verboce",
+	"			Show help",
+	NULL
+};
+
+
+static int
+cmd_opts_parse(int argc, char **argv, cmd_opts_p cmd_opts) {
+	int i, ch, opt_idx;
+	char opts_str[1024], tmbuf[16];
+
+
+	memset(cmd_opts, 0x00, sizeof(cmd_opts_t));
+	cmd_opts->action = -1;
+	cmd_opts->page = MP_CHIP_PAGE_CODE;
+	cmd_opts->post_wr_verify = 1;
+	cmd_opts->size_error = 1;
+
+	/* Process command line. */
+	/* Generate opts string from long options. */
+	for (i = 0, opt_idx = 0; NULL != lopts[i].name && (int)(sizeof(opts_str) - 1) > opt_idx; i ++) {
+		if (0 == lopts[i].val)
+			continue;
+		opts_str[opt_idx ++] = (char)lopts[i].val;
+		switch (lopts[i].has_arg) {
+		case optional_argument:
+			opts_str[opt_idx ++] = ':';
+		case required_argument:
+			opts_str[opt_idx ++] = ':';
+		}
+	}
+	opts_str[opt_idx] = 0;
+	opt_idx = -1;
+	while ((ch = getopt_long_only(argc, argv, opts_str, lopts, &opt_idx)) != -1) {
+restart_opts:
+		switch (opt_idx) {
+		case -1: /* Short option to index. */
+			for (opt_idx = 0; NULL != lopts[opt_idx].name; opt_idx ++) {
+				if (ch == lopts[opt_idx].val)
+					goto restart_opts;
+			}
+			/* Unknown option. */
+			break;
+		case 0: /* read */
+		case 1: /* verify */
+		case 2: /* write */
+			if (-1 != cmd_opts->action) {
+				fprintf(stderr, "write / read / verify - can not be combined, select one of them.\n");
+				return (EINVAL);
+			}
+			cmd_opts->action = opt_idx;
+			cmd_opts->file_name = optarg;
+			break;
+		case 3: /* no-erase */
+			cmd_opts->write_flags |= MP_PAGE_WR_F_NO_ERASE;
+			break;
+		case 4: /* no-pre-unprotect */
+			cmd_opts->write_flags |= MP_PAGE_WR_F_PRE_NO_UNPROTECT;
+			break;
+		case 5: /* no-post-protect */
+			cmd_opts->write_flags |= MP_PAGE_WR_F_POST_NO_PROTECT;
+			break;
+		case 6: /* no-post-verify */
+			cmd_opts->post_wr_verify = 0;
+			break;
+		case 7: /* file-offset */
+			cmd_opts->file_offset = (off_t)StrHexToUNum64(optarg, sstrlen(optarg));
+			break;
+		case 8: /* chip */
+			cmd_opts->chip_name = optarg;
+			break;
+		case 9: /* chip-id */
+			cmd_opts->chip_id = StrHexToUNum32(optarg, sstrlen(optarg));
+			cmd_opts->chip_id_size = (uint8_t)snprintf(tmbuf, sizeof(tmbuf), "%x", cmd_opts->chip_id);
+			cmd_opts->chip_id_size = ((cmd_opts->chip_id_size + 1) & ~0x01);
+			break;
+		case 10: /* addr */
+			cmd_opts->address = StrHexToUNum32(optarg, sstrlen(optarg));
+			break;
+		case 11: /* size */
+			cmd_opts->size = StrHexToUNum(optarg, sstrlen(optarg));
+			break;
+		case 12: /* page */
+			for (i = MP_CHIP_PAGE_CODE; MP_CHIP_PAGE__COUNT__ > i; i ++) {
+				if (strcasecmp(mp_chip_page_str[i], optarg))
+					continue;
+				cmd_opts->page = i;
+				break;
+			}
+			if (MP_CHIP_PAGE__COUNT__ == i) {
+				fprintf(stderr, "Unknown memory type: \"%s\".\n", optarg);
+				return (EINVAL);
+			}
+			break;
+		case 13: /* icsp */
+			cmd_opts->icsp = MP_ICSP_FLAG_ENABLE;
+			break;
+		case 14: /* icsp-vcc */
+			cmd_opts->icsp = (MP_ICSP_FLAG_ENABLE | MP_ICSP_FLAG_VCC);
+			break;
+		case 15: /* db-dump */
+			chip_db_dump_flt(optarg);
+			return (-1);
+		case 16: /* chip-id-check-no-fail */
+			cmd_opts->chip_id_check_no_fail = 1;
+			break;
+		case 17: /* no-size-error */
+			cmd_opts->size_error = 0;
+			break;
+		case 18: /* no-size-error-warn */
+			cmd_opts->size_error = 0;
+			cmd_opts->size_error_no_warn = 1;
+			break;
+		case 19: /* quiet */
+			cmd_opts->quiet = 1;
+			break;
+		default:
+			return (EINVAL);
+		}
+		opt_idx = -1;
+	}
+
+	return (0);
+}
 
 static void
 print_help_and_exit(const char *progname) {
+	size_t i;
 	const char *usage =
 		"minipro version %s     A free and open TL866XX programmer\n"
 		"Usage: %s [options]\n"
-		"options:\n"
-		"	-l		List all supported devices\n"
-		"	-r <filename>	Read memory\n"
-		"	-w <filename>	Write memory\n"
-		"	-e 		Do NOT erase device\n"
-		"	-u 		Do NOT disable write-protect\n"
-		"	-P 		Do NOT enable write-protect\n"
-		"	-v		Do NOT verify after write\n"
-		"	-p <device>	Specify device (use quotes)\n"
-		"	-c <type>	Specify memory type (optional)\n"
-		"			Possible values: code, data, config\n"
-		"	-i		Use ICSP\n"
-		"	-I		Use ICSP (without enabling Vcc)\n"
-		"	-s		Do NOT error on file size mismatch (only a warning)\n"
-		"	-S		No warning message for file size mismatch (can't combine with -s)\n"
-		"	-y		Do NOT error on ID mismatch\n";
+		"options:\n";
 	fprintf(stderr, usage, VERSION, basename(progname));
 
-#ifdef DEBUG
-	dev_db_dump_to_h();
-#endif
-	exit(-1);
-}
-
-static void
-print_devices_and_exit() {
-
-	dev_db_dump_flt(NULL);
-	exit(-1);
-}
-
-static void
-parse_cmdline(int argc, char **argv) {
-	int c;
-
-	memset(&cmdopts, 0x00, sizeof(cmdopts));
-	while ((c = getopt(argc, argv, "leuPvyr:w:p:c:iIsS")) != -1) {
-		switch (c) {
-		case 'l':
-			print_devices_and_exit();
-			break;
-		case 'e':
-			cmdopts.erase = 1; // 1= do not erase
-			break;
-		case 'u':
-			cmdopts.protect_off = 1; // 1= do not disable write protect
-			break;
-		case 'P':
-			cmdopts.protect_on = 1; // 1= do not enable write protect
-			break;
-		case 'v':
-			cmdopts.verify = 1; // 1= do not verify
-			break;
-		case 'y':
-			cmdopts.idcheck_continue = 1; // 1= do not stop on id mismatch
-			break;
-		case 'p':
-			if (!strcmp(optarg, "help"))
-				print_devices_and_exit();
-			cmdopts.device = dev_db_get_by_name(optarg);
-			if (!cmdopts.device)
-				ERROR("Unknown device");
-			break;
-		case 'c':
-			if (!strcmp(optarg, "code"))
-				cmdopts.page = CODE;
-			if (!strcmp(optarg, "data"))
-				cmdopts.page = DATA;
-			if (!strcmp(optarg, "config"))
-				cmdopts.page = CONFIG;
-			if (!cmdopts.page)
-				ERROR("Unknown memory type");
-			break;
-		case 'r':
-			cmdopts.action = action_read;
-			cmdopts.filename = optarg;
-			break;
-		case 'w':
-			cmdopts.action = action_write;
-			cmdopts.filename = optarg;
-			break;
-		case 'i':
-			cmdopts.icsp = (MP_ICSP_FLAG_ENABLE | MP_ICSP_FLAG_VCC);
-			break;
-		case 'I':
-			cmdopts.icsp = MP_ICSP_FLAG_ENABLE;
-			break;
-		case 'S':
-			cmdopts.size_nowarn = 1;
-			cmdopts.size_error = 1;
-			break;
-		case 's':
-			cmdopts.size_error = 1;
-			break;
-		default:
-			print_help_and_exit(argv[0]);
+	for (i = 0; NULL != lopts[i].name; i ++) {
+		if (0 == lopts[i].val) {
+			fprintf(stderr, "	-%s %s\n", lopts[i].name, lopts_descr[i]);
+		} else {
+			fprintf(stderr, "	-%s, -%c %s\n", lopts[i].name, lopts[i].val, lopts_descr[i]);
 		}
 	}
 }
 
-static int
-get_file_size(const char *filename) {
-	FILE *file = fopen(filename, "r");
-	if(!file) {
-		PERROR("Couldn't open file");
-	}
-
-	fseek(file, 0, SEEK_END);
-	int size = ftell(file);
-	fseek(file, 0, SEEK_SET);
-
-	fclose(file);
-	return (size);
-}
-
 static void
-update_status(char *status_msg, char *fmt, ...) {
-	va_list args;
+progress_cb(minipro_p mp __unused, size_t done, size_t total, void *udata) {
 
-	va_start(args, fmt);
-	printf("\r\e[K%s", status_msg);
-	vprintf(fmt, args);
-	fflush(stdout);
-}
-
-static int
-compare_memory(uint8_t *buf1, uint8_t *buf2, int size, uint8_t *c1, uint8_t *c2) {
-	int i;
-
-	for (i = 0; i < size; i ++) {
-		if (buf1[i] != buf2[i]) {
-			*c1 = buf1[i];
-			*c2 = buf2[i];
-			return (i);
-		}
-	}
-
-	return (-1);
-}
-
-/* RAM-centric IO operations */
-static void
-read_page_ram(minipro_p handle, uint8_t *buf, uint8_t cmd, const char *name, int size) {
-	int i, blocks_count, addr, len;
-	char status_msg[24];
-
-	sprintf(status_msg, "Reading %s... ", name);
-
-	device_p device = minipro_device_get(handle);
-	blocks_count = size / device->read_buffer_size;
-	if ((size % device->read_buffer_size) != 0) {
-		blocks_count ++;
-	}
-
-	for (i = 0; i < blocks_count; i ++) {
-		update_status(status_msg, "%2d%%", ((i * 100) / blocks_count));
-		// Translating address to protocol-specific
-		addr = (i * device->read_buffer_size);
-		if (device->opts4 & 0x2000) {
-			addr = (addr >> 1);
-		}
-		len = device->read_buffer_size;
-		// Last block
-		if (((i + 1) * len) > size) {
-			len = (size % len);
-		}
-		minipro_read_block(handle, cmd, addr, (buf + (i * device->read_buffer_size)), len);
-	}
-
-	update_status(status_msg, "OK\n");
-}
-
-static void
-write_page_ram(minipro_p handle, const uint8_t *buf, uint8_t cmd, const char *name, int size) {
-	int i, blocks_count, addr, len;
-	char status_msg[24];
-
-	sprintf(status_msg, "Writing %s... ", name);
-
-	device_p device = minipro_device_get(handle);
-
-	blocks_count = (size / device->write_buffer_size);
-	if ((size % device->write_buffer_size) != 0) {
-		blocks_count ++;
-	}
-
-	for (i = 0; i < blocks_count; i ++) {
-		update_status(status_msg, "%2d%%", ((i * 100) / blocks_count));
-		// Translating address to protocol-specific
-		addr = (i * device->write_buffer_size);
-		if (device->opts4 & 0x2000) {
-			addr = (addr >> 1);
-		}
-		len = device->write_buffer_size;
-		// Last block
-		if (((i + 1) * len) > size) {
-			len = (size % len);
-		}
-		minipro_write_block(handle, cmd, addr, (buf + (i * device->write_buffer_size)), len);
-	}
-	update_status(status_msg, "OK\n");
-}
-
-/* Wrappers for operating with files */
-static void
-read_page_file(minipro_p handle, const char *filename, uint8_t cmd, const char *name, int size) {
-	FILE *file = fopen(filename, "w");
-
-	if (file == NULL) {
-		PERROR("Couldn't open file for writing");
-	}
-
-	uint8_t *buf = malloc(size);
-	if (!buf) {
-		ERROR("Can't malloc");
-	}
-
-	read_page_ram(handle, buf, cmd, name, size);
-	fwrite(buf, 1, size, file);
-
-	fclose(file);
-	free(buf);
-}
-
-static void
-write_page_file(minipro_p handle, const char *filename, uint8_t cmd, const char *name, int size) {
-	FILE *file = fopen(filename, "r");
-
-	if (file == NULL) {
-		PERROR("Couldn't open file for reading");
-	}
-
-	uint8_t *buf = malloc(size);
-	if (!buf) {
-		ERROR("Can't malloc");
-	}
-
-	if (fread(buf, 1, size, file) != size && !cmdopts.size_error) {
-		ERROR("Short read");
-	}
-	write_page_ram(handle, buf, cmd, name, size);
-
-	fclose(file);
-	free(buf);
-}
-
-static void
-read_fuses(minipro_p handle, const char *filename, fuse_decl_p fuses) {
-	int i, d;
-	uint8_t data_length = 0, opcode = fuses[0].minipro_cmd;
-	uint8_t buf[11];
-
-	printf("Reading fuses... ");
-	fflush(stdout);
-
-	if (Config_init(filename)) {
-		PERROR("Couldn't create config");
-	}
-
-	minipro_begin_transaction(handle);
-	for (i = 0; fuses[i].name; i ++) {
-		data_length += fuses[i].length;
-		if (fuses[i].minipro_cmd < opcode) {
-			ERROR("fuse_decls are not sorted");
-		}
-		if (fuses[i + 1].name == NULL || fuses[i + 1].minipro_cmd > opcode) {
-			minipro_read_fuses(handle, opcode, data_length, buf);
-			// Unpacking received buf[] accordingly to fuse_decls with same minipro_cmd
-			for (d = 0; fuses[d].name; d ++) {
-				if (fuses[d].minipro_cmd != opcode) {
-					continue;
-				}
-				int value = load_int(&(buf[fuses[d].offset]), fuses[d].length, MP_LITTLE_ENDIAN);
-				if (Config_set_int(fuses[d].name, value) == -1)
-					ERROR("Couldn't set configuration");
-			}
-
-			opcode = fuses[i+1].minipro_cmd;
-			data_length = 0;
-		}
-	}
-	minipro_end_transaction(handle);
-
-	Config_close();
-	printf("OK\n");
-}
-
-static void
-write_fuses(minipro_p handle, const char *filename, fuse_decl_p fuses) {
-
-	printf("Writing fuses... ");
-	fflush(stdout);
-
-	if (Config_open(filename)) {
-		PERROR("Couldn't parse config");
-	}
-
-	minipro_begin_transaction(handle);
-	int i, d;
-	uint8_t data_length = 0, opcode = fuses[0].minipro_cmd;
-	uint8_t buf[11];
-	for (i = 0; fuses[i].name; i ++) {
-		data_length += fuses[i].length;
-		if(fuses[i].minipro_cmd < opcode) {
-			ERROR("fuse_decls are not sorted");
-		}
-		if (fuses[i + 1].name == NULL || fuses[i + 1].minipro_cmd > opcode) {
-			for(d = 0; fuses[d].name; d ++) {
-				if(fuses[d].minipro_cmd != opcode) {
-					continue;
-				}
-				int value = Config_get_int(fuses[d].name);
-				if (value == -1)
-					ERROR("Could not read configuration");
-				format_int(&(buf[fuses[d].offset]), value, fuses[d].length, MP_LITTLE_ENDIAN);
-			}
-			if (0 != minipro_write_fuses(handle, opcode, data_length, buf))
-				ERROR("Failed while writing config bytes");
-
-			opcode = fuses[i + 1].minipro_cmd;
-			data_length = 0;
-		}
-	}
-	minipro_end_transaction(handle);
-
-	Config_close();
-	printf("OK\n");
-}
-
-static void
-verify_page_file(minipro_p handle, const char *filename, uint8_t cmd, const char *name, int size) {
-	FILE *file = fopen(filename, "r");
-
-	if(file == NULL) {
-		PERROR("Couldn't open file for reading");
-	}
-
-	/* Loading file */
-	int file_size = get_file_size(filename);
-	uint8_t *file_data = malloc(file_size);
-	if (fread(file_data, 1, file_size, file) != file_size) {
-		ERROR("Short read");
-	}
-	fclose(file);
-
-	minipro_begin_transaction(handle);
-
-	/* Downloading data from chip*/
-	uint8_t *chip_data = malloc(size);
-	if (cmdopts.size_error)
-		read_page_ram(handle, chip_data, cmd, name, file_size);
-	else
-		read_page_ram(handle, chip_data, cmd, name, size);
-	minipro_end_transaction(handle);
-
-	uint8_t c1, c2;
-	int idx = compare_memory(file_data, chip_data, file_size, &c1, &c2);
-
-	/* No memory leaks */
-	free(file_data);
-	free(chip_data);
-
-	if (idx != -1) {
-		ERROR_FMT("Verification failed at 0x%02x: 0x%02x != 0x%02x\n", idx, c1, c2);
+	if (done == total) {
+		printf("\r\e[K%sOK.\n", (const char*)udata);
 	} else {
-		printf("Verification OK\n");
+		printf("\r\e[K%s%zu / %zu bytes", (const char*)udata, done, total);
 	}
+	fflush(stdout);
 }
 
-/* Higher-level logic */
-void
-action_read(const char *filename, minipro_p handle, device_p device) {
-	char *code_filename = (char*)filename;
-	char *data_filename = (char*)filename;
-	char *config_filename = (char*)filename;
-	char default_data_filename[] = "eeprom.bin";
-	char default_config_filename[] = "fuses.conf";
+static int
+get_file_size(const char *file_name, size_t *file_size) {
+	struct stat sb;
 
-	minipro_begin_transaction(handle); // Prevent device from hanging
-	switch (cmdopts.page) {
-	case UNSPECIFIED:
-		data_filename = default_data_filename;
-		config_filename = default_config_filename;
-	case CODE:
-		read_page_file(handle, code_filename, MP_CMD_READ_CODE, "Code", device->code_memory_size);
-		if (cmdopts.page)
-			break;
-		/* PASSTROUTH. */
-	case DATA:
-		if (device->data_memory_size) {
-			read_page_file(handle, data_filename, MP_CMD_READ_DATA, "Data", device->data_memory_size);
-		}
-		if (cmdopts.page)
-			break;
-		/* PASSTROUTH. */
-	case CONFIG:
-		if (device->fuses) {
-			read_fuses(handle, config_filename, device->fuses);
-		}
-		break;
-	}
-	minipro_end_transaction(handle); 
+	if (NULL == file_name || NULL == file_size)
+		return (EINVAL);
+	if (0 != stat(file_name, &sb))
+		return (errno);
+	(*file_size) = (size_t)sb.st_size;
+
+	return (0);
 }
 
-void
-action_write(const char *filename, minipro_p handle, device_p device) {
-	int fsize;
-	uint16_t status;
+static int
+read_file(const char *file_name, off_t offset, size_t size, size_t max_size,
+    uint8_t **buf, size_t *buf_size) {
+	int fd, error;
+	ssize_t rd;
+	struct stat sb;
 
-	switch (cmdopts.page) {
-	case UNSPECIFIED:
-	case CODE:
-		fsize = get_file_size(filename);
-		if (fsize != device->code_memory_size) {
-			if (!cmdopts.size_error)
-				ERROR_FMT("Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
-			else if (cmdopts.size_nowarn == 0)
-				printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
+	if (NULL == file_name || NULL == buf || NULL == buf_size)
+		return (EINVAL);
+	/* Open file. */
+	fd = open(file_name, O_RDONLY);
+	if (-1 == fd)
+		return (errno);
+	/* Get file size. */
+	if (0 != fstat(fd, &sb)) {
+		error = errno;
+		goto err_out;
+	}
+	/* Check size and offset. */
+	if (0 != size) {
+		if ((offset + (off_t)size) > sb.st_size) {
+			error = EINVAL;
+			goto err_out;
 		}
-		break;
-	case DATA:
-		fsize = get_file_size(filename);
-		if (fsize != device->data_memory_size) {
-			if (!cmdopts.size_error)
-				ERROR_FMT("Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
-			else if (cmdopts.size_nowarn == 0) 
-				printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
+	} else {
+		/* Check overflow. */
+		if (offset >= sb.st_size) {
+			error = EINVAL;
+			goto err_out;
 		}
-		break;
-	case CONFIG:
-		break;
-	}
-	minipro_begin_transaction(handle);
-	if (cmdopts.erase == 0) {
-		minipro_prepare_writing(handle);
-		minipro_end_transaction(handle); // Let prepare_writing() to take an effect
-	}
-
-	minipro_begin_transaction(handle);
-	if (-1 == minipro_get_status(handle, &status))
-		ERROR("Overcurrency protection");
-	if (cmdopts.protect_off == 0 && (device->opts4 & 0xc000)) {
-		minipro_protect_off(handle);
-	}
-
-	switch (cmdopts.page) {
-	case UNSPECIFIED:
-	case CODE:
-		write_page_file(handle, filename, MP_CMD_WRITE_CODE, "Code", device->code_memory_size);
-		if (cmdopts.verify == 0)
-			verify_page_file(handle, filename, MP_CMD_READ_CODE, "Code", device->code_memory_size);
-		break;
-	case DATA:
-		write_page_file(handle, filename, MP_CMD_WRITE_DATA, "Data", device->data_memory_size);
-		if (cmdopts.verify == 0)
-			verify_page_file(handle, filename, MP_CMD_READ_DATA, "Data", device->data_memory_size);
-		break;
-	case CONFIG:
-		if (device->fuses) {
-			write_fuses(handle, filename, device->fuses);
+		size = (size_t)sb.st_size;
+		(*buf_size) = size;
+		if (0 != max_size && ((off_t)max_size) < sb.st_size) {
+			error = EFBIG;
+			goto err_out;
 		}
-		break;
 	}
-	minipro_end_transaction(handle); // Let prepare_writing() to make an effect
+	/* Allocate buf for file content. */
+	(*buf) = malloc((size + sizeof(void*)));
+	if (NULL == (*buf)) {
+		error = ENOMEM;
+		goto err_out;
+	}
+	/* Read file content. */
+	rd = pread(fd, (*buf), size, offset);
+	close(fd);
+	if (-1 == rd) {
+		error = errno;
+		free((*buf));
+		(*buf) = NULL;
+		return (error);
+	}
+	(*buf)[size] = 0;
+	return (0);
 
-	if (cmdopts.protect_on == 0 && (device->opts4 & 0xc000)) {
-		minipro_begin_transaction(handle);
-		minipro_protect_on(handle);
-		minipro_end_transaction(handle);
-	}
+err_out:
+	close(fd);
+	return (error);
 }
+
 
 int
 main(int argc, char **argv) {
-	minipro_p handle;
-	device_p device;
-	uint32_t chip_id;
-	uint8_t chip_id_size;
-	minipro_ver_t ver;
-	const char *dev_ver_str;
-	char str_buf[64];
+	int error = 0;
+	cmd_opts_t cmd_opts;
+	minipro_p mp = NULL;
+	chip_p chip = NULL;
+	int fd;
+	uint32_t chip_id, chip_val, buf_val;
+	uint8_t chip_id_size, *file_data = NULL, *chip_data = NULL;
+	size_t file_size, chip_data_size, chip_size = 0, tr_size, err_offset;
+	char status_msg[64];
 
-	parse_cmdline(argc, argv);
-	if (!cmdopts.filename) {
+	error = cmd_opts_parse(argc, argv, &cmd_opts);
+	if (0 != error) {
 		print_help_and_exit(argv[0]);
-	}
-	if (cmdopts.action && !cmdopts.device) {
-		USAGE_ERROR("Device required");
-	}
-	device = cmdopts.device;
-
-	/* Open MiniPro device. */
-	if (0 != minipro_open(MP_TL866_VID, MP_TL866_PID, device,
-	    cmdopts.icsp, 1, &handle)) {
-		ERROR("minipro_open()");
+		return (error);
 	}
 
-	/* Printing system info. */
-	if (0 != minipro_get_version_info(handle, &ver)) {
-		ERROR("minipro_get_version_info()");
+	/* Find chip. */
+	if (NULL != cmd_opts.chip_name) { /* By name. */
+		chip = chip_db_get_by_name(cmd_opts.chip_name);
+		if (NULL == chip) { /* By ID / fallback. */
+			fprintf(stderr, "Chip \"%s\" not found, try one of listed below or type: %s --db-dump | grep %s\n",
+			    cmd_opts.chip_name, basename(argv[0]), cmd_opts.chip_name);
+			chip_db_dump_flt(cmd_opts.chip_name);
+			return (-1);
+		}
+	} else if (0 != cmd_opts.chip_id_size) { /* By ID. */
+		chip = chip_db_get_by_id(cmd_opts.chip_id, cmd_opts.chip_id_size);
+		if (NULL == chip) { /* . */
+			fprintf(stderr, "Chip not found.\n");
+			return (-1);
+		}
 	}
-	/* Model/dev ver preprocess. */
-	switch (ver.device_version) {
-	case MP_DEV_VER_TL866A:
-	case MP_DEV_VER_TL866CS:
-		dev_ver_str = minipro_dev_ver_str[ver.device_version];
-		break;
-	default:
-		snprintf(str_buf, sizeof(str_buf), "%s (ver = %"PRIu8")",
-		    minipro_dev_ver_str[MP_DEV_VER_TL866_UNKNOWN],
-		    ver.device_version);
-		dev_ver_str = (const char*)str_buf;
-	}
-	printf("Found Minipro: %s, fw: v%02d.%"PRIu8".%"PRIu8"%s, code: %.*s, serial: %.*s, proto: %"PRIu8"\n",
-	    dev_ver_str,
-	    ver.hardware_version, ver.firmware_version_major,
-	    ver.firmware_version_minor,
-	    ((MP_FW_VER_MIN > ((ver.firmware_version_major << 8) | ver.firmware_version_minor)) ? " (too old)" : ""),
-	    (int)sizeof(ver.device_code), ver.device_code,
-	    (int)sizeof(ver.serial_num), ver.serial_num,
-	    ver.device_status);
-
-	/* Protocol version check. */
-	switch (ver.device_status) {
-	case 1:
-	case 2:
-		break;
-	default:
-		ERROR("Protocol version error");
+	/* Display chip info. */
+	if (0 == cmd_opts.quiet) {
+		chip_db_print_info(chip);
 	}
 
-	// Verifying Chip ID (if applicable)
-	if (device->chip_id_size &&
-	    device->chip_id) {
-		minipro_begin_transaction(handle);
-		minipro_get_chip_id(handle, &chip_id, &chip_id_size);
-		minipro_end_transaction(handle);
-		if (chip_id == device->chip_id) {
-			printf("Chip ID OK: 0x%02x\n", chip_id);
+	/* Open MiniPro. */
+	error = minipro_open(MP_TL866_VID, MP_TL866_PID, 1, &mp);
+	if (0 != error)
+		return (error);
+	/* Check and print device info. */
+	if (0 == cmd_opts.quiet) {
+		minipro_print_info(mp);
+	}
+
+	/* Check some command line options before continue. */
+	if (NULL == chip) { /* Is chip specified? */
+		fprintf(stderr, "Chip not specified, can not continue.\n");
+		error = -1;
+		goto err_out;
+	}
+	switch (cmd_opts.page) {
+	case MP_CHIP_PAGE_CODE:
+	case MP_CHIP_PAGE_DATA:
+		chip_size = ((MP_CHIP_PAGE_CODE == cmd_opts.page) ? chip->code_memory_size : chip->data_memory_size);
+		if (0 == chip_size) {
+			fprintf(stderr, "chip page \"%s\" size = 0 - does not exist.\n",
+			    mp_chip_page_str[cmd_opts.page]);
+			error = EINVAL;
+			goto err_out;
+		}
+		if (0 != cmd_opts.address &&
+		    0 != cmd_opts.size) {
+			if ((cmd_opts.size - cmd_opts.address) > chip_size) {
+				fprintf(stderr, "options error: chip page \"%s\" size = %zu, (addr + size) = %zu + %zu = %zu.\n",
+				    mp_chip_page_str[cmd_opts.page], chip_size,
+				    (size_t)cmd_opts.address, cmd_opts.size,
+				    ((size_t)cmd_opts.address + cmd_opts.size));
+				error = EINVAL;
+				goto err_out;
+			}
+		} else if (0 != cmd_opts.address) {
+			if (cmd_opts.address > chip_size) {
+				fprintf(stderr, "options error: chip page \"%s\" size = %zu, addr = %zu is out of range.\n",
+				    mp_chip_page_str[cmd_opts.page],
+				    chip_size, (size_t)cmd_opts.address);
+				error = EINVAL;
+				goto err_out;
+			}
+		} else if (0 != cmd_opts.size) {
+			if (cmd_opts.size > chip_size) {
+				fprintf(stderr, "options error: chip page \"%s\" size = %zu, size = %zu is out of range.\n",
+				    mp_chip_page_str[cmd_opts.page],
+				    chip_size, cmd_opts.size);
+				error = EINVAL;
+				goto err_out;
+			}
+		}
+		if (0 == cmd_opts.size) { /* Fixup size. */
+			tr_size = (chip_size - cmd_opts.address);
 		} else {
-			if (cmdopts.idcheck_continue)
-				printf("WARNING: Chip ID mismatch: expected 0x%02x, got 0x%02x\n", device->chip_id, chip_id);
-			else
-				ERROR_FMT("Invalid Chip ID: expected 0x%02x, got 0x%02x\n(use '-y' to continue anyway at your own risk)\n", device->chip_id, chip_id);
+			tr_size = cmd_opts.size;
+		}
+		if (0 == tr_size) {
+			fprintf(stderr, "Data to transfer size seto to 0, nothink to do.\n");
+			error = -1;
+			goto err_out;
+		}
+		printf("Will transfer: %zu bytes, starting from: 0x%08x.\n",
+		    tr_size,  cmd_opts.address);
+		break;
+	case MP_CHIP_PAGE_CONFIG:
+		if (0 != cmd_opts.file_offset ||
+		    0 != cmd_opts.address ||
+		    0 != cmd_opts.size) {
+			fprintf(stderr, "chip page \"%s\" does not allow to set options: file-offset, addr, size.\n",
+			     mp_chip_page_str[MP_CHIP_PAGE_CONFIG]);
+			error = EINVAL;
+			goto err_out;
+		}
+		tr_size = 0;
+		break;
+	default:
+		error = EINVAL;
+		goto err_out;
+	}
+
+	/* Set chip info. */
+	error = minipro_chip_set(mp, chip, cmd_opts.icsp);
+	if (0 != error)
+		goto err_out;
+
+	/* Verify Chip ID (if applicable). */
+	if (chip->chip_id_size &&
+	    chip->chip_id) {
+		error = minipro_get_chip_id(mp, &chip_id, &chip_id_size);
+		if (0 != error) {
+			LOG_ERR(error, "Fail on chip ID read.");
+			goto err_out;
+		}
+		if (is_chip_id_prob_eq(chip, chip_id, chip_id_size)) {
+			printf("Chip ID OK: expected 0x%02x, got 0x%02x.\n",
+			    chip->chip_id, chip_id);
+		} else {
+			if (0 != cmd_opts.chip_id_check_no_fail) {
+				printf("WARNING: Chip ID mismatch: expected 0x%02x, got 0x%02x.\n",
+				    chip->chip_id, chip_id);
+				chip_db_print_info(chip_db_get_by_id(chip_id, chip_id_size));
+			} else {
+				fprintf(stderr, "Invalid Chip ID: expected 0x%02x, got 0x%02x\n(use '-y' to continue anyway at your own risk).\n",
+				    chip->chip_id, chip_id);
+				chip_db_print_info(chip_db_get_by_id(chip_id, chip_id_size));
+				error = -1;
+				goto err_out;
+			}
 		}
 	}
 
-	cmdopts.action(cmdopts.filename, handle, device);
+	/* Do action/work. */
+	switch (cmd_opts.action) {
+	case 0: /* read */
+		snprintf(status_msg, sizeof(status_msg), "Reading %s... ",
+		    mp_chip_page_str[cmd_opts.page]);
+		error = minipro_page_read(mp,
+		    cmd_opts.page, cmd_opts.address, tr_size,
+		    &chip_data, &chip_data_size, progress_cb, (void*)status_msg);
+		if (0 != error) {
+			LOG_ERR(error, "Fail on chip read.");
+			goto err_out;
+		}
+		/* Save/update file. */
+		fd = open(cmd_opts.file_name, (O_WRONLY | O_CREAT), 0600);
+		if (-1 == fd) {
+			error = errno;
+			LOG_ERR(error, "Fail on file open for chip dump writing.");
+			goto err_out;
+		}
+		if (chip_data_size != (size_t)pwrite(fd, chip_data, chip_data_size, cmd_opts.file_offset)) {
+			error = errno;
+			LOG_ERR(error, "Fail on chip write data to file.");
+		}
+		close(fd);
+		break;
+	case 1: /* verify */
+	case 2: /* write */
+		error = get_file_size(cmd_opts.file_name, &file_size);
+		if (0 != error) {
+			LOG_ERR(error, "Fail on get file size.");
+			goto err_out;
+		}
 
-	minipro_close(handle);
+		if ((file_size - (size_t)cmd_opts.file_offset) < tr_size) {
+			if (0 != cmd_opts.size_error) {
+				fprintf(stderr, "Incorrect file size and offset: %zu - %zu = %zu, needed at least %zu.\n",
+				    file_size, (size_t)cmd_opts.file_offset,
+				    (file_size - (size_t)cmd_opts.file_offset),
+				    tr_size);
+				error = -1;
+				goto err_out;
+			} else if (0 == cmd_opts.size_error_no_warn) {
+				printf("Warning: Incorrect file size and offset: %zu - %zu = %zu, needed at least %zu.\n",
+				    file_size, (size_t)cmd_opts.file_offset,
+				    (file_size - (size_t)cmd_opts.file_offset),
+				    tr_size);
+			}
+		}
+		/* Loading file. */
+		error = read_file(cmd_opts.file_name, cmd_opts.file_offset, tr_size,
+		    MAX_CHIP_FILE_SIZE, &file_data, &file_size);
+		if (0 != error) {
+			LOG_ERR(error, "Fail on file read.");
+			goto err_out;
+		}
+		if (2 == cmd_opts.action) { /* write */
+			snprintf(status_msg, sizeof(status_msg), "Writing %s... ",
+			    mp_chip_page_str[cmd_opts.page]);
+			error = minipro_page_write(mp,
+			    cmd_opts.write_flags, cmd_opts.page, cmd_opts.address,
+			    file_data, file_size, progress_cb, (void*)status_msg);
+			if (0 != error) {
+				LOG_ERR(error, "Fail on chip write.");
+				goto err_out;
+			}
+			if (0 == cmd_opts.post_wr_verify) /* verify disabled */
+				break;
+		}
+		/* verify */
+		snprintf(status_msg, sizeof(status_msg), "Verifying %s... ",
+		    mp_chip_page_str[cmd_opts.page]);
+		error = minipro_page_verify(mp, cmd_opts.page, cmd_opts.address,
+		    file_data, tr_size, &err_offset, &buf_val, &chip_val,
+		    progress_cb, (void*)status_msg);
+		if (0 != error) {
+			LOG_ERR(error, "Fail on chip read.");
+			goto err_out;
+		}
+		if (err_offset < tr_size) {
+			fprintf(stderr, "\nVerification failed at 0x%02zx: 0x%02x (file) != 0x%02x (chip).\n",
+			    err_offset, buf_val, chip_val);
+		}
+		break;
+	default:
+		fprintf(stderr, "write / read / verify - not specified, nothink to do.\n");
+		error = -1;
+	}
 
-	return (0);
+
+err_out:
+	free(chip_data);
+	free(file_data);
+	minipro_close(mp);
+
+	return (error);
 }
