@@ -230,7 +230,7 @@ restart_opts:
 }
 
 static void
-print_help_and_exit(const char *progname) {
+print_usage(const char *progname) {
 	size_t i;
 	const char *usage =
 		"minipro version %s     A free and open TL866XX programmer\n"
@@ -301,14 +301,15 @@ read_file(const char *file_name, off_t offset, size_t size, size_t max_size,
 			error = EINVAL;
 			goto err_out;
 		}
-		size = (size_t)sb.st_size;
-		(*buf_size) = size;
-		if (0 != max_size && ((off_t)max_size) < sb.st_size) {
+		size = (size_t)(sb.st_size - offset);
+		if (0 != max_size && max_size < size) {
+			(*buf_size) = size;
 			error = EFBIG;
 			goto err_out;
 		}
 	}
 	/* Allocate buf for file content. */
+	(*buf_size) = size;
 	(*buf) = malloc((size + sizeof(void*)));
 	if (NULL == (*buf)) {
 		error = ENOMEM;
@@ -341,19 +342,21 @@ main(int argc, char **argv) {
 	int fd;
 	uint32_t chip_id, chip_val, buf_val;
 	uint8_t chip_id_size, *file_data = NULL, *chip_data = NULL;
-	size_t file_size, chip_data_size, chip_size = 0, tr_size, err_offset;
+	size_t file_size, file_data_size, chip_data_size, chip_size = 0, tr_size, err_offset;
 	char status_msg[64];
 
 	error = cmd_opts_parse(argc, argv, &cmd_opts);
 	if (0 != error) {
-		print_help_and_exit(argv[0]);
+		if (-1 == error)
+			return (0); /* Handled action. */
+		print_usage(argv[0]);
 		return (error);
 	}
 
 	/* Find chip. */
 	if (NULL != cmd_opts.chip_name) { /* By name. */
 		chip = chip_db_get_by_name(cmd_opts.chip_name);
-		if (NULL == chip) { /* By ID / fallback. */
+		if (NULL == chip) {
 			fprintf(stderr, "Chip \"%s\" not found, try one of listed below or type: %s --db-dump | grep %s\n",
 			    cmd_opts.chip_name, basename(argv[0]), cmd_opts.chip_name);
 			chip_db_dump_flt(cmd_opts.chip_name);
@@ -361,7 +364,7 @@ main(int argc, char **argv) {
 		}
 	} else if (0 != cmd_opts.chip_id_size) { /* By ID. */
 		chip = chip_db_get_by_id(cmd_opts.chip_id, cmd_opts.chip_id_size);
-		if (NULL == chip) { /* . */
+		if (NULL == chip) {
 			fprintf(stderr, "Chip not found.\n");
 			return (-1);
 		}
@@ -445,7 +448,7 @@ main(int argc, char **argv) {
 			error = EINVAL;
 			goto err_out;
 		}
-		tr_size = 0;
+		tr_size = 0; /* Autodetect from file size. */
 		break;
 	default:
 		error = EINVAL;
@@ -516,7 +519,8 @@ main(int argc, char **argv) {
 			goto err_out;
 		}
 
-		if ((file_size - (size_t)cmd_opts.file_offset) < tr_size) {
+		if (file_size <= (size_t)cmd_opts.file_offset ||
+		    (file_size - (size_t)cmd_opts.file_offset) < tr_size) {
 			if (0 != cmd_opts.size_error) {
 				fprintf(stderr, "Incorrect file size and offset: %zu - %zu = %zu, needed at least %zu.\n",
 				    file_size, (size_t)cmd_opts.file_offset,
@@ -532,8 +536,9 @@ main(int argc, char **argv) {
 			}
 		}
 		/* Loading file. */
+		/* file_data_size = ((0 != tr_size) ? tr_size : (file_size - cmd_opts.file_offset)); */
 		error = read_file(cmd_opts.file_name, cmd_opts.file_offset, tr_size,
-		    MAX_CHIP_FILE_SIZE, &file_data, &file_size);
+		    MAX_CHIP_FILE_SIZE, &file_data, &file_data_size);
 		if (0 != error) {
 			LOG_ERR(error, "Fail on file read.");
 			goto err_out;
@@ -543,7 +548,7 @@ main(int argc, char **argv) {
 			    mp_chip_page_str[cmd_opts.page]);
 			error = minipro_page_write(mp,
 			    cmd_opts.write_flags, cmd_opts.page, cmd_opts.address,
-			    file_data, file_size, progress_cb, (void*)status_msg);
+			    file_data, file_data_size, progress_cb, (void*)status_msg);
 			if (0 != error) {
 				LOG_ERR(error, "Fail on chip write.");
 				goto err_out;
@@ -555,13 +560,13 @@ main(int argc, char **argv) {
 		snprintf(status_msg, sizeof(status_msg), "Verifying %s... ",
 		    mp_chip_page_str[cmd_opts.page]);
 		error = minipro_page_verify(mp, cmd_opts.page, cmd_opts.address,
-		    file_data, tr_size, &err_offset, &buf_val, &chip_val,
+		    file_data, file_data_size, &err_offset, &buf_val, &chip_val,
 		    progress_cb, (void*)status_msg);
 		if (0 != error) {
 			LOG_ERR(error, "Fail on chip read.");
 			goto err_out;
 		}
-		if (err_offset < tr_size) { /* Not euqual. */
+		if (err_offset < file_data_size) { /* Not euqual. */
 			switch (cmd_opts.page) {
 			case MP_CHIP_PAGE_CODE:
 			case MP_CHIP_PAGE_DATA:
