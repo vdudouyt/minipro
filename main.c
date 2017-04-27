@@ -554,6 +554,7 @@ int main(int argc, char **argv) {
 		  
 		case 0x63:
 		case 0x65:
+		case 0x66:
 			device->fuses = pic_fuses;
 			break;
 	}
