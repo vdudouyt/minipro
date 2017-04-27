@@ -547,7 +547,7 @@ int main(int argc, char **argv) {
 				PERROR("Unknown AVR device");
 		  }
 		  break;
- 	        case 0x10063:   //  select 2 fuses
+		case 0x10063:   //  select 2 fuses
 		  device->fuses=pic2_fuses;
 		  device->protocol_id&=0xFFFF;
 		  break;
