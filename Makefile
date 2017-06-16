@@ -50,6 +50,7 @@ install:
 	cp $(MINIPRO) $(BIN_DIR)
 	cp $(MINIPRO_QUERY_DB) $(BIN_DIR)
 	cp $(MINIPROHEX) $(BIN_DIR)
+	cp udev/rules.d/60-minipro.rules $(UDEV_RULES_DIR)
 	cp udev/rules.d/80-minipro.rules $(UDEV_RULES_DIR)
 	cp bash_completion.d/minipro $(COMPLETIONS_DIR)
 	cp man/minipro.1 $(MAN_DIR)
@@ -58,6 +59,7 @@ uninstall:
 	rm -f $(BIN_DIR)/$(MINIPRO)
 	rm -f $(BIN_DIR)/$(MINIPRO_QUERY_DB)
 	rm -f $(BIN_DIR)/$(MINIPROHEX)
+	rm -f $(UDEV_RULES_DIR)/60-minipro.rules
 	rm -f $(UDEV_RULES_DIR)/80-minipro.rules
 	rm -f $(COMPLETIONS_DIR)/minipro
 	rm -f $(MAN_DIR)/minipro.1
