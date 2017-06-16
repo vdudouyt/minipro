@@ -37,7 +37,8 @@ parenthesis, or at sign; the device name MUST be surrounded by quotes.
 .TP
 .B \-c <type>
 Optionally specify memory type.  Possible values include "code", "data", 
-and "config".
+and "config". The "config" memory type is used to access fuses, see
+FUSES below.
 
 .TP
 .B \-r <filename>
@@ -102,6 +103,19 @@ leaves it off.  These options are of no use for the TL866CS.
 The Minipro TL866xx series of chip programmers is distributed by 
 Autoelectric.  Their website is
 .BR http://www.autoelectric.cn.
+
+.SH FUSES
+
+Fuses can be read and written with the
+.B -c config
+option. Fuse data is exchanged in a text format. When writing fuses
+all fuses on your device must be assigned a value. To see what fuses
+are supported by your device use
+.B -r
+with
+.B -c config
+to get your current fuse values. This also shows you what the text
+format looks like.
 
 .SH AUTHOR
 .I minipro
