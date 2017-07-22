@@ -395,13 +395,30 @@ void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned i
 	}
 }
 
+/* replace_filename_extension("filename.foo", ".bar") --> "filename.bar" */
+static char* replace_filename_extension(const char* filename, const char* extension)
+{
+	char* buffer = malloc(strlen(filename) + strlen(extension) + 1);
+	if (!buffer) {
+		PERROR("Out of memory");
+	}
+	buffer[0] = '\0';
+	strcat(buffer, filename);
+	char* dot = strrchr(buffer, '.');
+	if (dot) {
+		*dot = '\0';
+	}
+	strcat(buffer, extension);
+	return buffer;
+}
+
 /* Higher-level logic */
 void action_read(const char *filename, minipro_handle_t *handle, device_t *device) {
 	char *code_filename = (char*) filename;
 	char *data_filename = (char*) filename;
 	char *config_filename = (char*) filename;
-	char default_data_filename[] = "eeprom.bin";
-	char default_config_filename[] = "fuses.conf";
+	char* default_data_filename = replace_filename_extension(filename, ".eeprom.bin");
+	char* default_config_filename = replace_filename_extension(filename, ".fuses.conf");
 
 	minipro_begin_transaction(handle); // Prevent device from hanging
 	switch(cmdopts.page) {
@@ -423,6 +440,9 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 			break;
 	}
 	minipro_end_transaction(handle);
+
+	free(default_config_filename);
+	free(default_data_filename);
 }
 
 void action_write(const char *filename, minipro_handle_t *handle, device_t *device) {
