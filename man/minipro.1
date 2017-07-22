@@ -7,7 +7,7 @@ minipro \- programs various chips using the Minipro TL866XX series of programmer
 .RB [-p " device"]
 .RB [-c " code|data|config"]
 .RB [-r|-w " filename"]
-.RB [-e] [-u] [-P] [-i|-I]
+.RB [-e] [-u] [-P] [-i|-I] [-v] [-s|-S] [-y]
 
 .B miniprohex
 .RB [-p " device"]
@@ -71,6 +71,14 @@ Use ICSP.
 .TP
 .B \-I
 Use ICSP (without enabling Vcc).
+
+.TP
+.B \-s
+Do NOT error on file size mismatch (only a warning).
+
+.TP
+.B \-S
+No warning message for file size mismatch (can't combine with -s).
 
 .TP
 .B \-y
