@@ -35,7 +35,7 @@ sudo make install
 ```
 3. Setup udev rules to recognize chips: `cp udev/rules.d/80-minipro.rules /etc/udev/rules.d/` and then trigger udev: `udevadm trigger`
 
-### Ubunt 16.04 (Xenial)/Linux Mint 18.2
+### Ubuntu 16.04 (Xenial)/Linux Mint 18.2
 1. Install libusb dependency: `sudo apt install libusb-1.0-0-dev`
 2. Compile:
 ```nohighlight
