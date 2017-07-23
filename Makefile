@@ -67,8 +67,8 @@ uninstall:
 	rm -f $(BIN_INSTDIR)/$(MINIPRO_QUERY_DB)
 	rm -f $(BIN_INSTDIR)/$(MINIPROHEX)
 	rm -f $(MAN_INSTDIR)/minipro.1
-	rm -f $(UDEV_RULES_INSTDIR)/80-minipro.rules
-	rm -f $(COMPLETIONS_INSTDIR)/minipro
+	if [ -n "$(UDEV_DIR)" ]; then rm -f $(UDEV_RULES_INSTDIR)/80-minipro.rules; fi
+	if [ -n "$(COMPLETIONS_DIR)" ]; then rm -f $(COMPLETIONS_INSTDIR)/minipro; fi
 
 dist: distclean
 	mkdir $(DIST_DIR)
