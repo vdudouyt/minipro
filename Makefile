@@ -1,4 +1,7 @@
-.PHONY: all clean install test
+.PHONY: all clean test distclean dist \
+	install install-common install-udev-rule install-bash-completion \
+	uninstall uninstall-common uninstall-udev-rule uninstall-bash-completion
+
 COMMON_OBJECTS=byte_utils.o database.o minipro.o fuses.o easyconfig.o
 OBJECTS=$(COMMON_OBJECTS) main.o minipro-query-db.o
 PROGS=minipro minipro-query-db
@@ -46,29 +49,57 @@ distclean: clean
 	rm -rf $(DIST_DIR)
 	rm -f $(DIST_DIR).tar.gz
 
-install:
+install-udev-rule:
+	@if [ -n "$(UDEV_DIR)" -a \( ! -e "$(UDEV_RULES_INSTDIR)" -o -w "$(UDEV_RULES_INSTDIR)" \) ]; then \
+		echo "Installing udev rules file"; \
+		mkdir -p $(UDEV_RULES_INSTDIR); \
+		cp udev/rules.d/80-minipro.rules $(UDEV_RULES_INSTDIR)/; \
+	else \
+		echo "NOT installing udev rules file"; \
+	fi
+
+uninstall-udev-rule:
+	@if [ -n "$(UDEV_DIR)" -a -w "$(UDEV_RULES_INSTDIR)" ]; then \
+		echo "Removing udev rules file"; \
+		rm -f $(UDEV_RULES_INSTDIR)/80-minipro.rules; \
+	else \
+		echo "NOT removing udev rules file"; \
+	fi
+
+install-bash-completion:
+	@if [ -n "$(COMPLETIONS_DIR)" -a \( ! -e "$(COMPLETIONS_INSTDIR)" -o -w "$(COMPLETIONS_INSTDIR)" \) ]; then \
+		echo "Installing bash completion config"; \
+		mkdir -p $(COMPLETIONS_INSTDIR); \
+		cp bash_completion.d/minipro $(COMPLETIONS_INSTDIR)/; \
+	else \
+		echo "NOT installing bash completion config"; \
+	fi
+
+uninstall-bash-completion:
+	@if [ -n "$(COMPLETIONS_DIR)" -a -w "$(COMPLETIONS_INSTDIR)" ]; then \
+		echo "Removing bash completion config"; \
+		rm -f $(COMPLETIONS_INSTDIR)/minipro; \
+	else \
+		echo "NOT removing bash completion config"; \
+	fi
+
+install-common:
 	mkdir -p $(BIN_INSTDIR)
 	mkdir -p $(MAN_INSTDIR)
 	cp $(MINIPRO) $(BIN_INSTDIR)/
 	cp $(MINIPRO_QUERY_DB) $(BIN_INSTDIR)/
 	cp $(MINIPROHEX) $(BIN_INSTDIR)/
 	cp man/minipro.1 $(MAN_INSTDIR)/
-	if [ -n "$(UDEV_DIR)" ]; then \
-		mkdir -p $(UDEV_RULES_INSTDIR); \
-		cp udev/rules.d/80-minipro.rules $(UDEV_RULES_INSTDIR)/; \
-	fi
-	if [ -n "$(COMPLETIONS_DIR)" ]; then \
-		mkdir -p $(COMPLETIONS_INSTDIR); \
-		cp bash_completion.d/minipro $(COMPLETIONS_INSTDIR)/; \
-	fi
 
-uninstall:
+install: install-common install-udev-rule install-bash-completion
+
+uninstall-common:
 	rm -f $(BIN_INSTDIR)/$(MINIPRO)
 	rm -f $(BIN_INSTDIR)/$(MINIPRO_QUERY_DB)
 	rm -f $(BIN_INSTDIR)/$(MINIPROHEX)
 	rm -f $(MAN_INSTDIR)/minipro.1
-	if [ -n "$(UDEV_DIR)" ]; then rm -f $(UDEV_RULES_INSTDIR)/80-minipro.rules; fi
-	if [ -n "$(COMPLETIONS_DIR)" ]; then rm -f $(COMPLETIONS_INSTDIR)/minipro; fi
+
+uninstall: uninstall-common uninstall-udev-rule uninstall-bash-completion
 
 dist: distclean
 	mkdir $(DIST_DIR)
