@@ -12,13 +12,17 @@ VERSION=0.1
 PREFIX=/usr/local
 
 DIST_DIR = $(MINIPRO)-$(VERSION)
-BIN_DIR=$(DESTDIR)$(PREFIX)/bin/
-UDEV_RULES_DIR=$(DESTDIR)$(PREFIX)/lib/udev/rules.d/
-MAN_DIR=$(DESTDIR)$(PREFIX)/share/man/man1/
-COMPLETIONS_DIR=$(DESTDIR)$(PREFIX)/share/bash_completion.d/
+BIN_INSTDIR=$(DESTDIR)$(PREFIX)/bin
+MAN_INSTDIR=$(DESTDIR)$(PREFIX)/share/man/man1
 
-libusb_CFLAGS = `pkg-config --cflags libusb-1.0`
-libusb_LIBS = `pkg-config --libs libusb-1.0`
+UDEV_DIR=$(shell pkg-config --silence-errors --variable=udevdir udev)
+UDEV_RULES_INSTDIR=$(DESTDIR)$(UDEV_DIR)/rules.d
+
+COMPLETIONS_DIR=$(shell pkg-config --silence-errors --variable=completionsdir bash-completion)
+COMPLETIONS_INSTDIR=$(DESTDIR)$(COMPLETIONS_DIR)
+
+libusb_CFLAGS = $(shell pkg-config --cflags libusb-1.0)
+libusb_LIBS = $(shell pkg-config --libs libusb-1.0)
 
 CFLAGS = -g -O0
 override CFLAGS += $(libusb_CFLAGS)
@@ -43,27 +47,28 @@ distclean: clean
 	rm -f $(DIST_DIR).tar.gz
 
 install:
-	mkdir -p $(BIN_DIR)
-	mkdir -p $(UDEV_RULES_DIR)
-	mkdir -p $(MAN_DIR)
-	mkdir -p $(COMPLETIONS_DIR)
-	cp $(MINIPRO) $(BIN_DIR)
-	cp $(MINIPRO_QUERY_DB) $(BIN_DIR)
-	cp $(MINIPROHEX) $(BIN_DIR)
-	cp udev/rules.d/80-minipro.rules $(UDEV_RULES_DIR)
-	cp bash_completion.d/minipro $(COMPLETIONS_DIR)
-	cp man/minipro.1 $(MAN_DIR)
+	mkdir -p $(BIN_INSTDIR)
+	mkdir -p $(MAN_INSTDIR)
+	cp $(MINIPRO) $(BIN_INSTDIR)/
+	cp $(MINIPRO_QUERY_DB) $(BIN_INSTDIR)/
+	cp $(MINIPROHEX) $(BIN_INSTDIR)/
+	cp man/minipro.1 $(MAN_INSTDIR)/
+	if [ -n "$(UDEV_DIR)" ]; then \
+		mkdir -p $(UDEV_RULES_INSTDIR); \
+		cp udev/rules.d/80-minipro.rules $(UDEV_RULES_INSTDIR)/; \
+	fi
+	if [ -n "$(COMPLETIONS_DIR)" ]; then \
+		mkdir -p $(COMPLETIONS_INSTDIR); \
+		cp bash_completion.d/minipro $(COMPLETIONS_INSTDIR)/; \
+	fi
 
 uninstall:
-	rm -f $(BIN_DIR)/$(MINIPRO)
-	rm -f $(BIN_DIR)/$(MINIPRO_QUERY_DB)
-	rm -f $(BIN_DIR)/$(MINIPROHEX)
-	rm -f $(UDEV_RULES_DIR)/80-minipro.rules
-	rm -f $(COMPLETIONS_DIR)/minipro
-	rm -f $(MAN_DIR)/minipro.1
-	find $(BIN_DIR) -type d -empty -delete
-	find $(COMPLETIONS_DIR) -type d -empty -delete
-	find $(MAN_DIR) -type d -empty -delete
+	rm -f $(BIN_INSTDIR)/$(MINIPRO)
+	rm -f $(BIN_INSTDIR)/$(MINIPRO_QUERY_DB)
+	rm -f $(BIN_INSTDIR)/$(MINIPROHEX)
+	rm -f $(MAN_INSTDIR)/minipro.1
+	if [ -n "$(UDEV_DIR)" ]; then rm -f $(UDEV_RULES_INSTDIR)/80-minipro.rules; fi
+	if [ -n "$(COMPLETIONS_DIR)" ]; then rm -f $(COMPLETIONS_INSTDIR)/minipro; fi
 
 dist: distclean
 	mkdir $(DIST_DIR)
@@ -79,4 +84,3 @@ dist: distclean
 	@echo
 	@echo "$(DIST_DIR).tar.gz created"
 	@echo
-	
