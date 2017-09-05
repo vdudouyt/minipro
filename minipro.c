@@ -144,10 +144,10 @@ int minipro_get_chip_id(minipro_handle_t *handle) {
 
 void minipro_read_fuses(minipro_handle_t *handle, unsigned int type, unsigned int length, unsigned char *buf) {
 	msg_init(msg, type, handle->device, handle->icsp);
-	msg[2]=(type==18 && length==4)?2:1;  // note that PICs with 1 config word will show length==2
-	msg[5]=0x10;
+	msg[2] = (type==18 && length==4)?2:1;  // note that PICs with 1 config word will show length==2
+	msg[5] = 0x10;
 	msg_send(handle, msg, 18);
-	msg_recv(handle, msg, 7 + length );
+	msg_recv(handle, msg, 7 + length);
 	memcpy(buf, &(msg[7]), length);
 }
 

@@ -130,15 +130,15 @@ void parse_cmdline(int argc, char **argv) {
 		        case 'I':
 				cmdopts.icsp = MP_ICSP_ENABLE;
 				break;
-				
+
 			case 'S':
 			       cmdopts.size_nowarn=1;
 			       cmdopts.size_error=1;
-			       break;				
+			       break;
 			case 's':
 			        cmdopts.size_error=1;
-				break;			       
-				
+				break;
+
 			default:
 				print_help_and_exit(argv[0]);
 		}
@@ -213,7 +213,7 @@ void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int t
 	sprintf(status_msg, "Writing %s... ", name);
 
 	device_t *device = handle->device;
-	
+
 	int blocks_count = size / device->write_buffer_size;
 	if(size % device->write_buffer_size != 0) {
 		blocks_count++;
@@ -416,7 +416,7 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 			}
 			break;
 	}
-	minipro_end_transaction(handle); 
+	minipro_end_transaction(handle);
 }
 
 void action_write(const char *filename, minipro_handle_t *handle, device_t *device) {
@@ -433,14 +433,14 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 			}
 			break;
 		case DATA:
-		
+
 			fsize=get_file_size(filename);
 			if (fsize != device->data_memory_size) {
 				if (!cmdopts.size_error)
 					ERROR2("Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
-				else if (cmdopts.size_nowarn==0) 
+				else if (cmdopts.size_nowarn==0)
 					printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
-			}		
+			}
 			break;
 		case CONFIG:
 			break;
@@ -547,11 +547,18 @@ int main(int argc, char **argv) {
 				PERROR("Unknown AVR device");
 		  }
 		  break;
+        case 0x73:
+          switch(device->variant) {
+            case 0x10:
+                device->fuses = avr2_fuses;
+                break;
+          }
+          break;
 		case 0x10063:   //  select 2 fuses
 		  device->fuses=pic2_fuses;
 		  device->protocol_id&=0xFFFF;
 		  break;
-		  
+
 		case 0x63:
 		case 0x65:
 		case 0x66:

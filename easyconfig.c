@@ -1,6 +1,6 @@
 // Dmitry Smirnov, 2013
 // Valentin Dudouyt, 2014
-// 
+//
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the
 // Free Software Foundation; either version 2, or (at your option) any
@@ -24,16 +24,16 @@
 
 #include "easyconfig.h"
 
-#define LINE_LENGTH 200 
+#define LINE_LENGTH 200
 
 FILE *pFile;
 char param_value[50];
 char* config_path;
 int config_lines_qty=0;
 
-struct  conf{ 
+struct  conf{
 	char config_line[LINE_LENGTH];
-	char param_name[40]; 
+	char param_name[40];
 	char param_value[40];
 } *config_content;
 
@@ -78,27 +78,27 @@ int Config_open(const char *path) {
 		strcpy(config_content[i].param_name, "");
 		strcpy(config_content[i].param_value, "");
 	}
-	
+
 	rewind(pFile);
 	while (fgets(temp,LINE_LENGTH,pFile)) {
 		if (strlen(temp) == LINE_LENGTH -1) { printf("Config error. Line too long: %d\n", counter1); ret=1; errno=EINVAL; break; }
-		if (strlen(temp)<4) { 
+		if (strlen(temp)<4) {
 			counter1++;
 			continue;
 		}
 
 		strcpy(config_content[counter].config_line,temp);
-		result=strtok(temp,"="); 
+		result=strtok(temp,"=");
 		result=str_trim_right(result);
 		if (!result) { printf("Config error. Line: %d\n", counter1); ret=1; errno=EINVAL; break; }
 		if (strlen(result) >= sizeof(config_content[counter].param_name)) { printf("Config error. Key too long on line: %d\n", counter1); ret=1; errno=EINVAL; break; }
 		strcpy(config_content[counter].param_name,result);
-		result=strtok(NULL,"\n"); 
+		result=strtok(NULL,"\n");
 		result=str_trim_left(result);
 		if (!result) { printf("Config error. Line: %d\n", counter1); ret=1; errno=EINVAL; break; }
 		if (strlen(result) >= sizeof(config_content[counter].param_value)) { printf("Config error. Value too long on line: %d\n", counter1); ret=1; errno=EINVAL; break; }
 		strcpy(config_content[counter].param_value,result);
-		
+
 		counter++; counter1++;
 	}
 	fclose(pFile);
@@ -108,7 +108,7 @@ int Config_open(const char *path) {
 char *Config_get_str(const char *par_name) {
 	int i;
 	for (i=0;i<config_lines_qty;i++) {
-		
+
 		if (!strcmp(config_content[i].param_name,par_name)) {
 			if (strlen(param_value) >= sizeof(config_content[i].param_value)) { break; }
 			strcpy(param_value,config_content[i].param_value);
@@ -121,7 +121,7 @@ char *Config_get_str(const char *par_name) {
 int Config_set_str(const char *par_name, const char *value) {
 	int i;
 
-	for (i=0;i<config_lines_qty;i++) { 
+	for (i=0;i<config_lines_qty;i++) {
 		if (!strcmp(config_content[i].param_name,par_name)) {
 			if (strlen(param_value) >= sizeof(config_content[i].param_value)) { return -1; }
 			strcpy(config_content[i].param_value, value);
@@ -137,7 +137,7 @@ int Config_set_str(const char *par_name, const char *value) {
 	strcpy(config_content[i].param_name, par_name);
 	if (strlen(param_value) >= sizeof(config_content[i].param_value)) { return -1; }
 	strcpy(config_content[i].param_value, value);
-	
+
 	config_lines_qty++;
 
 	return 0;
@@ -163,10 +163,10 @@ int Config_set_int(const char *par_name, unsigned int value) {
 int Config_close() {
 	int i=0;
 	pFile=fopen(config_path,"w");
-	
+
 	while (i<config_lines_qty) {
 		fputs (config_content[i].config_line,pFile);
-		
+
 		i++;
 	}
 	fclose(pFile);
