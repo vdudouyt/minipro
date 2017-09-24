@@ -17,7 +17,7 @@
 #include "version.h"
 #include "minipro.h"
 #include "database.h"
-#include "StrHexToNum.h"
+#include "strh2num.h"
 
 
 #define MAX_CHIP_FILE_SIZE	(1024 * 1024 * 1024) /* 1Gb */
@@ -170,21 +170,21 @@ restart_opts:
 			cmd_opts->post_wr_verify = 0;
 			break;
 		case 7: /* file-offset */
-			cmd_opts->file_offset = (off_t)StrHexToUNum64(optarg, sstrlen(optarg));
+			cmd_opts->file_offset = (off_t)strh2u64(optarg, sstrlen(optarg));
 			break;
 		case 8: /* chip */
 			cmd_opts->chip_name = optarg;
 			break;
 		case 9: /* chip-id */
-			cmd_opts->chip_id = StrHexToUNum32(optarg, sstrlen(optarg));
+			cmd_opts->chip_id = strh2u32(optarg, sstrlen(optarg));
 			cmd_opts->chip_id_size = (uint8_t)snprintf(tmbuf, sizeof(tmbuf), "%x", cmd_opts->chip_id);
 			cmd_opts->chip_id_size = ((cmd_opts->chip_id_size + 1) & ~0x01);
 			break;
 		case 10: /* addr */
-			cmd_opts->address = StrHexToUNum32(optarg, sstrlen(optarg));
+			cmd_opts->address = strh2u32(optarg, sstrlen(optarg));
 			break;
 		case 11: /* size */
-			cmd_opts->size = StrHexToUNum(optarg, sstrlen(optarg));
+			cmd_opts->size = strh2usize(optarg, sstrlen(optarg));
 			break;
 		case 12: /* page */
 			for (i = MP_CHIP_PAGE_CODE; MP_CHIP_PAGE__COUNT__ > i; i ++) {

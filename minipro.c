@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <libusb.h>
 
-#include "StrHexToNum.h"
+#include "strh2num.h"
 #include "minipro.h"
 
 
@@ -214,7 +214,7 @@ buf_get_named_line_val32(const uint8_t *buf, size_t buf_size,
 		;
 	if (ptr == end)
 		return (EINVAL);
-	(*value) = UStr8HexToUNum32(ptr, (size_t)(end - ptr));
+	(*value) = ustrh2u32(ptr, (size_t)(end - ptr));
 
 	return (0);
 }
