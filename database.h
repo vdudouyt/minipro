@@ -11,8 +11,8 @@ typedef struct device {
 	unsigned int read_buffer_size;
 	unsigned int write_buffer_size;
 	enum { BYTE, WORD, BIT } word_size;
-	
-	unsigned int code_memory_size; // Presenting for every device	
+
+	unsigned int code_memory_size; // Presenting for every device
 	unsigned int data_memory_size;
 	unsigned int data_memory2_size;
 	unsigned int chip_id; // A vendor-specific chip ID (i.e. 0x1E9502 for ATMEGA48)

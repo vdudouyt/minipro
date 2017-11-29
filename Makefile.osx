@@ -43,7 +43,7 @@ install: all $(INSTALL_DIR) $(INSTALL_BIN_DIR) $(INSTALL_MAN_DIR)
 	cp $(MINIPRO) $(INSTALL_BIN_DIR)/
 	cp $(MINIPRO_QUERY_DB) $(INSTALL_BIN_DIR)/
 	cp man/minipro.1 $(INSTALL_MAN_DIR)
-	
+
 uninstall:
 	rm -f $(INSTALL_BIN_DIR)/$(MINIPRO)
 	rm -f $(INSTALL_BIN_DIR)/$(MINIPRO_QUERY_DB)

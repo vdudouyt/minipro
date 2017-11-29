@@ -7,7 +7,7 @@ Usage:
   miniprohex [--o offset] [--unfill byte size] [--obs blksize] [--line-length length] [minipro_options] -r filename.ext
   miniprohex [--o offset] [minirpo_options] -w filename.ext
 
-This calls minipro after converting known file types to 
+This calls minipro after converting known file types to
 .bin for writing or converting bin files after reading.
 
 --o: Offset for file conversion (see srec_cat)
@@ -57,14 +57,14 @@ do
       shift
       continue
   fi
-  if [ "$1" == "--offset" ] 
+  if [ "$1" == "--offset" ]
   then
       SRECOPTS="$SRECOPTS $1 $2"
       shift
       shift
       continue
   fi
-  if [ "$1" == "-r" ] 
+  if [ "$1" == "-r" ]
   then
     RWOPT=-r
     shift
@@ -110,7 +110,7 @@ RFILE="$FN"
 PRECVT=
 POSTCVT=
 ;;
-*) 
+*)
 # Who knows?
 RFILE="$FN"
 PRECVT=
