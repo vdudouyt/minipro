@@ -49,3 +49,17 @@ fakeroot dpkg-buildpackage -b
 ```
 
 You should then have a .deb file for you to install with ```dpkg -i```.
+
+## Compiling for Mac OS X
+
+Install libusb using brew:
+```
+brew install libusb
+brew link libusb
+```
+
+Compile using osx Makefile
+```
+CFLAGS="-I /usr/local/include/libusb-1.0 -g -O0 -Wall" make -f Makefile.osx
+sudo make install
+```
