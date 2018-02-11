@@ -515,7 +515,7 @@ int main(int argc, char **argv) {
 	printf("Found Minipro %s v%s\n", info.model_str, info.firmware_str);
 
 	// Verifying Chip ID (if applicable)
-	if(cmdopts.idcheck_skip && cmdopts.action == action_read) {
+	if(cmdopts.idcheck_skip) {
 		printf("WARNING: skipping Chip ID test\n");
 	} else if(device->chip_id_bytes_count && device->chip_id) {
 		minipro_begin_transaction(handle);
