@@ -25,7 +25,8 @@ struct {
 	int size_nowarn;
 	int verify;
 	int icsp;
-		int idcheck_continue;
+	int idcheck_skip;
+	int idcheck_continue;
 } cmdopts;
 
 void print_help_and_exit(char *progname) {
@@ -47,6 +48,7 @@ void print_help_and_exit(char *progname) {
 		"	-I		Use ICSP (without enabling Vcc)\n"
 		"	-s		Do NOT error on file size mismatch (only a warning)\n"
 		"	-S		No warning message for file size mismatch (can't combine with -s)\n"
+		"	-x		Do NOT attempt to read ID (only valid in read mode)\n"
 		"	-y		Do NOT error on ID mismatch\n";
 	fprintf(stderr, usage, VERSION, basename(progname));
 	exit(-1);
@@ -92,6 +94,10 @@ void parse_cmdline(int argc, char **argv) {
 
 		        case 'v':
 			  cmdopts.verify=1;  // 1= do not verify
+			  break;
+
+		        case 'x':
+			  cmdopts.idcheck_skip=1;  // 1= do not test id at all
 			  break;
 
 		        case 'y':
@@ -494,6 +500,11 @@ int main(int argc, char **argv) {
 		USAGE_ERROR("Device required");
 	}
 
+	// don't permit skipping the ID read in write-mode
+	if (cmdopts.action == action_write && cmdopts.idcheck_skip) {
+		print_help_and_exit(argv[0]);
+	}
+
 	device_t *device = cmdopts.device;
 	minipro_handle_t *handle = minipro_open(device);
 	handle->icsp = cmdopts.icsp;
@@ -504,7 +515,9 @@ int main(int argc, char **argv) {
 	printf("Found Minipro %s v%s\n", info.model_str, info.firmware_str);
 
 	// Verifying Chip ID (if applicable)
-	if(device->chip_id_bytes_count && device->chip_id) {
+	if(cmdopts.idcheck_skip && cmdopts.action == action_read) {
+		printf("WARNING: skipping Chip ID test\n");
+	} else if(device->chip_id_bytes_count && device->chip_id) {
 		minipro_begin_transaction(handle);
 		unsigned int chip_id = minipro_get_chip_id(handle);
 		minipro_end_transaction(handle);
