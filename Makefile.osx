@@ -16,8 +16,8 @@ MINIPRO			= minipro
 MINIPRO_QUERY_DB= minipro-query-db
 PROGS			= $(MINIPRO) $(MINIPRO_QUERY_DB)
 
-CFLAGS			= -g -O0 -Wall
-LIBS			= -lusb-1.0 -framework Foundation -framework IOKit
+CFLAGS			= -g -O0 -Wall $(shell pkg-config --cflags libusb-1.0)
+LIBS			= $(shell pkg-config --libs libusb-1.0) -framework Foundation -framework IOKit
 
 .PHONY: all clean install
 
