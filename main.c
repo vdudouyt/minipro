@@ -75,7 +75,7 @@ void parse_cmdline(int argc, char **argv) {
 	int8_t c;
 	memset(&cmdopts, 0, sizeof(cmdopts));
 
-	while((c = getopt(argc, argv, "leuPvyr:w:p:c:iIsS")) != -1) {
+	while((c = getopt(argc, argv, "leuPvxyr:w:p:c:iIsS")) != -1) {
 		switch(c) {
 			case 'l':
 				print_devices_and_exit();
