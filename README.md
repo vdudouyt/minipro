@@ -21,10 +21,10 @@ $ minipro -p ATMEGA48 -r atmega48.bin
 
 ## Prerequisites
 
-You'll need some sort of Linux machine.  Other Unices may work, though
-that is untested.  You will need version 1.0.16 or greater of libusb.
-Debian 7 (Wheezy) users should do this to make sure you get the right
-version:
+You'll need some sort of Linux or macOS machine.  Other Unices may work,
+though that is untested.  You will need version 1.0.16 or greater of
+libusb.  Debian 7 (Wheezy) users should do this to make sure you get the
+right version:
 
 ```sudo apt-get -t wheezy-backports libusb-1.0-0-dev```
 
@@ -49,3 +49,21 @@ fakeroot dpkg-buildpackage -b
 ```
 
 You should then have a .deb file for you to install with ```dpkg -i```.
+
+## Compiling on macOS
+
+Install `libusb` using brew or MacPorts:
+```
+brew install libusb
+brew link libusb
+```
+or:
+```
+port install libusb
+```
+
+Compile using macOS Makefile:
+```
+make -f Makefile.macOS
+sudo make install
+```
