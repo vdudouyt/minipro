@@ -15,5 +15,10 @@ override_dh_auto_install:
 	    DESTDIR=$(DESTDIR) \
 	    PREFIX=/usr
 
+override_dh_installudev:
+	cp udev/rules.d/80-minipro.rules debian/minipro.udev
+	dh_installudev
+	rm -f debian/minipro.udev
+
 %:
-	dh $@
+	dh $@ --with bash-completion
