@@ -25,20 +25,9 @@ though that is untested.  You will need version 1.0.16 or greater of
 libusb.
 
 
-### Debian 7 (wheezy)
-1. Install libusb dependency: ```sudo apt-get -t wheezy-backports libusb-1.0-0-dev```
-2. Compile:
-```nohighlight
-sudo apt-get install build-essential git fakeroot dpkg-dev libusb-1.0-0-dev
-git clone https://github.com/vdudouyt/minipro.git
-cd minipro
-make
-sudo make install
-```
-3. Setup udev rules to recognize chips: `cp udev/rules.d/80-minipro.rules /etc/udev/rules.d/` and then trigger udev: `udevadm trigger`
+## Compiling for Linux (Debian, Ubuntu etc.)
+1. Install build dependencies: `sudo apt build-essential git libusb-1.0-0-dev`
 
-### Ubuntu 16.04 (Xenial)/Linux Mint 18.2
-1. Install libusb dependency: `sudo apt install libusb-1.0-0-dev`
 2. Compile:
 ```nohighlight
 git clone https://github.com/vdudouyt/minipro.git
@@ -46,10 +35,27 @@ cd minipro
 make
 sudo make install
 ```
-3. Setup udev rules to recognize chips: `cp udev/rules.d/80-minipro.rules /etc/udev/rules.d/` and then trigger udev: `udevadm trigger`
+3. (Recommended) If you want to access the programmer as a regular user,
+you'll have to configure udev to recognize the programmer and set
+appropriate access permissions:
+```nohighlight
+sudo cp udev/rules.d/80-minipro.rules /etc/udev/rules.d/
+sudo udevadm trigger
+```
+You'll also have to add your regular user to the `plugdev` system
+group:
+```nohighlight
+sudo usermod -a -G plugdev YOUR-USER
+```
+Note that this change will only become effective after your next
+login.
 
+4. (Optional) There is also a bash-completion file that you can install with 
+```nohighlight
+sudo cp bash_completion.d/minipro /etc/bash_completion.d/
+```
 
-## Making a .deb file for Debian / Ubuntu
+### Making a .deb package
 
 Building a Debian package directly from this repository is easy.  Make
 sure you have the packages described above installed.  Be sure it all
@@ -57,10 +63,12 @@ builds, then do this:
 
 ```nohighlight
 sudo apt-get install fakeroot dpkg-dev
-fakeroot dpkg-buildpackage -b
+fakeroot dpkg-buildpackage -b --no-sign
 ```
 
-You should then have a .deb file for you to install with ```dpkg -i```.
+You should then have a .deb package for you to install with 
+`dpkg -i`. Note that the .deb package will already provide the udev
+and bash-completion configurations for you.
 
 ## Compiling on macOS
 

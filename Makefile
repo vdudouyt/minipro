@@ -15,12 +15,6 @@ DIST_DIR = $(MINIPRO)-$(VERSION)
 BIN_INSTDIR=$(DESTDIR)$(PREFIX)/bin
 MAN_INSTDIR=$(DESTDIR)$(PREFIX)/share/man/man1
 
-UDEV_DIR=$(shell pkg-config --define-variable=prefix=$(PREFIX) --silence-errors --variable=udevdir udev)
-UDEV_RULES_INSTDIR=$(DESTDIR)$(UDEV_DIR)/rules.d
-
-COMPLETIONS_DIR=$(shell pkg-config --define-variable=prefix=$(PREFIX) --silence-errors --variable=completionsdir bash-completion)
-COMPLETIONS_INSTDIR=$(DESTDIR)$(COMPLETIONS_DIR)
-
 libusb_CFLAGS = $(shell pkg-config --cflags libusb-1.0)
 libusb_LIBS = $(shell pkg-config --libs libusb-1.0)
 
@@ -53,22 +47,12 @@ install:
 	cp $(MINIPRO_QUERY_DB) $(BIN_INSTDIR)/
 	cp $(MINIPROHEX) $(BIN_INSTDIR)/
 	cp man/minipro.1 $(MAN_INSTDIR)/
-	if [ -n "$(UDEV_DIR)" ]; then \
-		mkdir -p $(UDEV_RULES_INSTDIR); \
-		cp udev/rules.d/80-minipro.rules $(UDEV_RULES_INSTDIR)/; \
-	fi
-	if [ -n "$(COMPLETIONS_DIR)" ]; then \
-		mkdir -p $(COMPLETIONS_INSTDIR); \
-		cp bash_completion.d/minipro $(COMPLETIONS_INSTDIR)/; \
-	fi
 
 uninstall:
 	rm -f $(BIN_INSTDIR)/$(MINIPRO)
 	rm -f $(BIN_INSTDIR)/$(MINIPRO_QUERY_DB)
 	rm -f $(BIN_INSTDIR)/$(MINIPROHEX)
 	rm -f $(MAN_INSTDIR)/minipro.1
-	if [ -n "$(UDEV_DIR)" ]; then rm -f $(UDEV_RULES_INSTDIR)/80-minipro.rules; fi
-	if [ -n "$(COMPLETIONS_DIR)" ]; then rm -f $(COMPLETIONS_INSTDIR)/minipro; fi
 
 dist: distclean
 	mkdir $(DIST_DIR)
