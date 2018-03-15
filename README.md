@@ -26,7 +26,7 @@ libusb.
 
 
 ## Compiling for Linux (Debian, Ubuntu etc.)
-1. Install build dependencies: `sudo apt build-essential git libusb-1.0-0-dev`
+1. Install build dependencies: `sudo apt-get install build-essential git libusb-1.0-0-dev`
 
 2. Compile:
 ```nohighlight
