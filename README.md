@@ -39,7 +39,7 @@ sudo make install
 you'll have to configure udev to recognize the programmer and set
 appropriate access permissions:
 ```nohighlight
-sudo cp udev/rules.d/80-minipro.rules /etc/udev/rules.d/
+sudo cp udev/debian/60-minipro.rules /etc/udev/rules.d/
 sudo udevadm trigger
 ```
 You'll also have to add your regular user to the `plugdev` system
