@@ -87,8 +87,8 @@ sure you have the build dependencies installed as described above.  Be
 sure it all builds, then do this:
 
 ```nohighlight
-sudo apt-get install fakeroot dpkg-dev
-fakeroot dpkg-buildpackage -b --no-sign
+sudo apt-get install fakeroot debhelper dpkg-dev
+fakeroot dpkg-buildpackage -b -us -uc
 ```
 
 You should then have a .deb package for you to install with 
