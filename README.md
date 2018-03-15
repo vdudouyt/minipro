@@ -25,19 +25,34 @@ though that is untested.  You will need version 1.0.16 or greater of
 libusb.
 
 
-## Compiling for Linux (Debian, Ubuntu etc.)
-1. Install build dependencies: `sudo apt-get install build-essential git libusb-1.0-0-dev`
+## Installation on Linux
 
-2. Compile:
+### Install build dependencies 
+
+#### Debian/Ubuntu
+```nohighlight
+sudo apt-get install build-essential git libusb-1.0-0-dev
+```
+
+#### Centos 7
+```nohighlight
+sudo yum install gcc make pkgconfig git libusbx-devel
+```
+
+### Checkout source code and compile 
 ```nohighlight
 git clone https://github.com/vdudouyt/minipro.git
 cd minipro
 make
 sudo make install
 ```
-3. (Recommended) If you want to access the programmer as a regular user,
+
+### Udev configuration (recommended)
+If you want to access the programmer as a regular user,
 you'll have to configure udev to recognize the programmer and set
-appropriate access permissions:
+appropriate access permissions.
+
+#### Debian/Ubuntu
 ```nohighlight
 sudo cp udev/debian/60-minipro.rules /etc/udev/rules.d/
 sudo udevadm trigger
@@ -50,7 +65,17 @@ sudo usermod -a -G plugdev YOUR-USER
 Note that this change will only become effective after your next
 login.
 
-4. (Optional) There is also a bash-completion file that you can install with 
+#### Centos 7
+```nohighlight
+sudo cp udev/centos7/80-minipro.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules
+```
+The Centos rules file currently make the programmer device writable
+for all users.
+
+### Bash completion (optional)
+
+Bash users may want to optionally install the provided completion file:
 ```nohighlight
 sudo cp bash_completion.d/minipro /etc/bash_completion.d/
 ```
@@ -58,8 +83,8 @@ sudo cp bash_completion.d/minipro /etc/bash_completion.d/
 ### Making a .deb package
 
 Building a Debian package directly from this repository is easy.  Make
-sure you have the packages described above installed.  Be sure it all
-builds, then do this:
+sure you have the build dependencies installed as described above.  Be
+sure it all builds, then do this:
 
 ```nohighlight
 sudo apt-get install fakeroot dpkg-dev
@@ -70,7 +95,7 @@ You should then have a .deb package for you to install with
 `dpkg -i`. Note that the .deb package will already provide the udev
 and bash-completion configurations for you.
 
-## Compiling on macOS
+## Installation on macOS
 
 Install `libusb` using brew or MacPorts:
 ```
