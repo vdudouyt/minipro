@@ -79,6 +79,16 @@ Bash users may want to optionally install the provided completion file:
 ```nohighlight
 sudo cp bash_completion.d/minipro /etc/bash_completion.d/
 ```
+## Installing under CentOS7
+
+```nohighlight
+sudo yum install libusbx libusbx-dev git
+git clone https://github.com/vdudouyt/minipro/ && cd minipro/
+patch -p1 < CentOS/CentOS7-x86_64.patch
+make
+sudo make install
+sudo udevadm control --reload-rules
+```
 
 ### Making a .deb package
 

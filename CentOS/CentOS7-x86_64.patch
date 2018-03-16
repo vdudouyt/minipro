@@ -1,0 +1,52 @@
+From 81f5737662453cc5c8b8da1660a17c64b562ac21 Mon Sep 17 00:00:00 2001
+From: POS_troi <root@sysalex.com>
+Date: Thu, 26 Feb 2015 12:19:49 +0200
+Subject: [PATCH] CentOS7 x86_64 patch
+
+---
+ minipro.c                     | 8 ++++----
+ udev/rules.d/80-minipro.rules | 6 +++++-
+ 2 files changed, 9 insertions(+), 5 deletions(-)
+
+diff --git a/minipro.c b/minipro.c
+index a2d7fa7..3291443 100644
+--- a/minipro.c
++++ b/minipro.c
+@@ -20,7 +20,7 @@ minipro_handle_t *minipro_open(device_t *device) {
+ 	ret = libusb_init(&(handle->ctx));
+ 	if(ret < 0) {
+ 		free(handle);
+-		ERROR2("Error initializing libusb: %s", libusb_strerror(ret));
++		ERROR2("Error initializing libusb: %s", libusb_error_name(ret));
+ 	}
+ 
+ 	handle->usb_handle = libusb_open_device_with_vid_pid(handle->ctx, 0x04d8, 0xe11c);
+@@ -61,11 +61,11 @@ static unsigned int msg_transfer(minipro_handle_t *handle, unsigned char *buf, i
+ 	int bytes_transferred;
+ 	int ret;
+ 	ret = libusb_claim_interface(handle->usb_handle, 0);
+-	if(ret != 0) ERROR2("IO error: claim_interface: %s\n", libusb_strerror(ret));
++	if(ret != 0) ERROR2("IO error: claim_interface: %s\n", libusb_error_name(ret));
+ 	ret = libusb_bulk_transfer(handle->usb_handle, (1 | direction), buf, length, &bytes_transferred, 0);
+-	if(ret != 0) ERROR2("IO error: bulk_transfer: %s\n", libusb_strerror(ret));
++	if(ret != 0) ERROR2("IO error: bulk_transfer: %s\n", libusb_error_name(ret));
+ 	ret = libusb_release_interface(handle->usb_handle, 0);
+-	if(ret != 0) ERROR2("IO error: release_interface: %s\n", libusb_strerror(ret));
++	if(ret != 0) ERROR2("IO error: release_interface: %s\n", libusb_error_name(ret));
+ 	if(bytes_transferred != length) ERROR2("IO error: expected %d bytes but %d bytes transferred\n", length, bytes_transferred);
+ 	return bytes_transferred;
+ }
+diff --git a/udev/rules.d/80-minipro.rules b/udev/rules.d/80-minipro.rules
+index b1976fc..d76fa59 100644
+--- a/udev/rules.d/80-minipro.rules
++++ b/udev/rules.d/80-minipro.rules
+@@ -1 +1,5 @@
+-SUBSYSTEMS=="usb", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="e11c", MODE="0660", GROUP="plugdev"
++BUS!="usb", ACTION!="add", SUBSYSTEM!=="usb_device", GOTO="minipro_rules_end"
++
++ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="e11c", MODE="0666"
++
++LABEL="minipro_rules_end"
+-- 
+1.8.3.1
+
