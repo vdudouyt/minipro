@@ -16,7 +16,7 @@ override_dh_auto_install:
 	    PREFIX=/usr
 
 override_dh_installudev:
-	cp udev/rules.d/80-minipro.rules debian/minipro.udev
+	cp udev/debian/60-minipro.rules debian/minipro.udev
 	dh_installudev
 	rm -f debian/minipro.udev
 
