@@ -29,7 +29,7 @@ struct {
 	int idcheck_continue;
 } cmdopts;
 
-void print_help_and_exit(char *progname) {
+void print_help_and_exit(char *progname, int rv) {
 	char usage[] =
 		"minipro version %s     A free and open TL866XX programmer\n"
 		"Usage: %s [options]\n"
@@ -49,9 +49,10 @@ void print_help_and_exit(char *progname) {
 		"	-s		Do NOT error on file size mismatch (only a warning)\n"
 		"	-S		No warning message for file size mismatch (can't combine with -s)\n"
 		"	-x		Do NOT attempt to read ID (only valid in read mode)\n"
-		"	-y		Do NOT error on ID mismatch\n";
-	fprintf(stderr, usage, VERSION, basename(progname));
-	exit(-1);
+		"	-y		Do NOT error on ID mismatch\n"
+		"	-h		Show help (this text)\n";
+	fprintf(rv ? stderr : stdout, usage, VERSION, basename(progname));
+	exit(rv);
 }
 
 void print_devices_and_exit() {
@@ -68,14 +69,14 @@ void print_devices_and_exit() {
 	for(device = &(devices[0]); device[0].name; device = &(device[1])) {
 		printf("%s\n", device->name);
 	}
-	exit(-1);
+	exit(0);
 }
 
 void parse_cmdline(int argc, char **argv) {
 	int8_t c;
 	memset(&cmdopts, 0, sizeof(cmdopts));
 
-	while((c = getopt(argc, argv, "leuPvxyr:w:p:c:iIsS")) != -1) {
+	while((c = getopt(argc, argv, "leuPvxyr:w:p:c:iIsSh")) != -1) {
 		switch(c) {
 			case 'l':
 				print_devices_and_exit();
@@ -145,8 +146,12 @@ void parse_cmdline(int argc, char **argv) {
 			        cmdopts.size_error=1;
 				break;
 
+			case 'h':
+				print_help_and_exit(argv[0], 0);
+				break;
+
 			default:
-				print_help_and_exit(argv[0]);
+				print_help_and_exit(argv[0], -1);
 		}
 	}
 }
@@ -514,7 +519,7 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
 	if(!cmdopts.filename) {
-		print_help_and_exit(argv[0]);
+		print_help_and_exit(argv[0], -1);
 	}
 	if(cmdopts.action && !cmdopts.device) {
 		USAGE_ERROR("Device required");
@@ -522,7 +527,7 @@ int main(int argc, char **argv) {
 
 	// don't permit skipping the ID read in write-mode
 	if (cmdopts.action == action_write && cmdopts.idcheck_skip) {
-		print_help_and_exit(argv[0]);
+		print_help_and_exit(argv[0], -1);
 	}
 
 	device_t *device = cmdopts.device;
