@@ -216,7 +216,8 @@ void minipro_get_system_info(minipro_handle_t *handle, minipro_system_info_t *ou
 	// Firmware
 	out->firmware = load_int(&(buf[4]), 2, MP_LITTLE_ENDIAN);
 	if(out->firmware < MP_FIRMWARE_VERSION) {
-		fprintf(stderr, "Warning: firmware is too old\n");
+		fprintf(stderr, "Warning: Firmware is out of date.");
+		fprintf(stderr, "  Latest known version is %s.\n", MP_FIRMWARE_STRING);
 	}
 	sprintf(out->firmware_str, "%02d.%d.%d", buf[39], buf[5], buf[4]);
 }
