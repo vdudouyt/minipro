@@ -18,12 +18,12 @@ struct {
 	char *filename;
 	device_t *device;
 	enum { UNSPECIFIED = 0, CODE, DATA, CONFIG } page;
-	int erase;
-	int protect_off;
-	int protect_on;
+	int no_erase;
+	int no_protect_off;
+	int no_protect_on;
 	int size_error;
 	int size_nowarn;
-	int verify;
+	int no_verify;
 	int icsp;
 	int idcheck_skip;
 	int idcheck_continue;
@@ -82,19 +82,19 @@ void parse_cmdline(int argc, char **argv) {
 				print_devices_and_exit();
 				break;
 		        case 'e':
-			  cmdopts.erase=1;  // 1= do not erase
+			  cmdopts.no_erase=1;  // 1= do not erase
 			  break;
 
 		        case 'u':
-			  cmdopts.protect_off=1;  // 1= do not disable write protect
+			  cmdopts.no_protect_off=1;  // 1= do not disable write protect
 			  break;
 
 		        case 'P':
-			  cmdopts.protect_on=1;  // 1= do not enable write protect
+			  cmdopts.no_protect_on=1;  // 1= do not enable write protect
 			  break;
 
 		        case 'v':
-			  cmdopts.verify=1;  // 1= do not verify
+			  cmdopts.no_verify=1;  // 1= do not verify
 			  break;
 
 		        case 'x':
@@ -477,7 +477,7 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 			break;
 	}
 	minipro_begin_transaction(handle);
-	if (cmdopts.erase==0)
+	if (cmdopts.no_erase==0)
 	  {
 		minipro_prepare_writing(handle);
 		minipro_end_transaction(handle); // Let prepare_writing() to take an effect
@@ -485,7 +485,7 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 
 	minipro_begin_transaction(handle);
 	minipro_get_status(handle);
-	if (cmdopts.protect_off==0 && device->opts4 & 0xc000) {
+	if (cmdopts.no_protect_off==0 && device->opts4 & 0xc000) {
 		minipro_protect_off(handle);
 	}
 
@@ -493,12 +493,12 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 		case UNSPECIFIED:
 		case CODE:
 			write_page_file(handle, filename, MP_WRITE_CODE, "Code", device->code_memory_size);
-			if (cmdopts.verify == 0)
+			if (cmdopts.no_verify == 0)
 				verify_page_file(handle, filename, MP_READ_CODE, "Code", device->code_memory_size);
 			break;
 		case DATA:
 			write_page_file(handle, filename, MP_WRITE_DATA, "Data", device->data_memory_size);
-			if (cmdopts.verify == 0)
+			if (cmdopts.no_verify == 0)
 				verify_page_file(handle, filename, MP_READ_DATA, "Data", device->data_memory_size);
 			break;
 		case CONFIG:
@@ -509,7 +509,7 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 	}
 	minipro_end_transaction(handle); // Let prepare_writing() to make an effect
 
-	if (cmdopts.protect_on==0 && device->opts4 & 0xc000) {
+	if (cmdopts.no_protect_on == 0 && device->opts4 & 0xc000) {
 		minipro_begin_transaction(handle);
 		minipro_protect_on(handle);
 		minipro_end_transaction(handle);
