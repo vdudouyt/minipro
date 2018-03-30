@@ -87,7 +87,7 @@ void minipro_begin_transaction(minipro_handle_t *handle) {
 }
 
 void minipro_end_transaction(minipro_handle_t *handle) {
-	msg_init(msg, 0x04, handle->device, handle->icsp);
+	msg_init(msg, MP_END_TRANSACTION, handle->device, handle->icsp);
 	msg[3] = 0x00;
 	msg_send(handle, msg, 4);
 }
