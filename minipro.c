@@ -87,7 +87,7 @@ void minipro_begin_transaction(minipro_handle_t *handle) {
 }
 
 void minipro_end_transaction(minipro_handle_t *handle) {
-	msg_init(msg, 0x04, handle->device, handle->icsp);
+	msg_init(msg, MP_END_TRANSACTION, handle->device, handle->icsp);
 	msg[3] = 0x00;
 	msg_send(handle, msg, 4);
 }
@@ -144,7 +144,7 @@ int minipro_get_chip_id(minipro_handle_t *handle) {
 
 void minipro_read_fuses(minipro_handle_t *handle, unsigned int type, unsigned int length, unsigned char *buf) {
 	msg_init(msg, type, handle->device, handle->icsp);
-	msg[2] = (type==18 && length==4)?2:1;  // note that PICs with 1 config word will show length==2
+	msg[2] = (type==MP_READ_CFG && length==4)?2:1;  // note that PICs with 1 config word will show length==2
 	msg[5] = 0x10;
 	msg_send(handle, msg, 18);
 	msg_recv(handle, msg, 7 + length);
@@ -154,7 +154,7 @@ void minipro_read_fuses(minipro_handle_t *handle, unsigned int type, unsigned in
 void minipro_write_fuses(minipro_handle_t *handle, unsigned int type, unsigned int length, unsigned char *buf) {
 	// Perform actual writing
 	switch(type & 0xf0) {
-		case 0x10:
+		case 0x10: // MP_READ_CFG, MP_READ_USER
 			msg_init(msg, type + 1, handle->device, handle->icsp);
 			msg[2] = (length==4)?0x02:0x01;  // 2 fuse PICs have len=8
 			msg[4] = 0xc8;
@@ -164,7 +164,7 @@ void minipro_write_fuses(minipro_handle_t *handle, unsigned int type, unsigned i
 
 			msg_send(handle, msg, 64);
 			break;
-		case 0x40:
+		case 0x40: // MP_READ_LOCK, MP_PROTECT_ON
 			msg_init(msg, type - 1, handle->device, handle->icsp);
 			memcpy(&(msg[7]), buf, length);
 
@@ -174,7 +174,7 @@ void minipro_write_fuses(minipro_handle_t *handle, unsigned int type, unsigned i
 
 	// The device waits us to get the status now
 	msg_init(msg, type, handle->device, handle->icsp);
-	msg[2]=(type==18 && length==4)?2:1;  // note that PICs with 1 config word will show length==2
+	msg[2]=(type==MP_READ_CFG && length==4)?2:1;  // note that PICs with 1 config word will show length==2
 	memcpy(&(msg[7]), buf, length);
 	
 	msg_send(handle, msg, 18);

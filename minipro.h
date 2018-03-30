@@ -42,14 +42,23 @@
 #define MP_REQUEST_STATUS1_MSG2 0xfe
 
 #define MP_GET_SYSTEM_INFO 0x00
+#define MP_END_TRANSACTION 0x04
 #define MP_GET_CHIP_ID 0x05
 #define MP_READ_CODE 0x21
 #define MP_READ_DATA 0x30
 #define MP_WRITE_CODE 0x20
 #define MP_WRITE_DATA 0x31
 #define MP_PREPARE_WRITING 0x22
+
+#define MP_READ_USER 0x10
+#define MP_WRITE_USER 0x11
+
 #define MP_READ_CFG 0x12
 #define MP_WRITE_CFG 0x13
+
+#define MP_WRITE_LOCK 0x40
+#define MP_READ_LOCK 0x41
+
 #define MP_PROTECT_OFF 0x44
 #define MP_PROTECT_ON 0x45
 
