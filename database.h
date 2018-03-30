@@ -7,11 +7,8 @@ typedef struct device {
 	const char *name;
 	unsigned int protocol_id;
 	unsigned int variant;
-	unsigned int addressing_mode;
 	unsigned int read_buffer_size;
 	unsigned int write_buffer_size;
-	enum { BYTE, WORD, BIT } word_size;
-
 	unsigned int code_memory_size; // Presenting for every device
 	unsigned int data_memory_size;
 	unsigned int data_memory2_size;
