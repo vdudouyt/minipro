@@ -95,6 +95,31 @@ You should then have a .deb package for you to install with `dpkg -i`.
 Note that the .deb package will already provide the udev and 
 bash-completion configurations for you.
 
+### Making a .rpm package
+
+You can build RPM packages for Fedora and CentOS with the supplied
+minipro.spec.
+
+First make sure you have a RPM build environment set up. You need to have
+the rpmdevtools package installed and a `rpmbuild` directory tree within
+your homedir. Use the `rpmdev-setuptree` command to create the rpmbuild
+directory tree if it does not exist yet.
+
+Since minipro does not yet make official releases with version numbers
+and tags, you have to choose a specific git commit to build. Open the
+minipro.spec file and adapt the "commit" and "commitdate" definitions.
+You can get these either with `git log` or from the github project page.
+
+Then use these commands to download the source tarballs from github and
+build the package:
+
+```nohighlight
+spectool -g -R minipro.spec
+rpmbuild -ba minipro.spec
+```
+
+The final RPMs can be found below `~/rpmbuild/RPMS/`
+
 ## Installation on macOS
 
 Install `libusb` using brew or MacPorts:
