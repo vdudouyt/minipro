@@ -27,6 +27,7 @@ struct {
 	int icsp;
 	int idcheck_skip;
 	int idcheck_continue;
+	int idcheck_only;
 } cmdopts;
 
 void print_help_and_exit(char *progname, int rv) {
@@ -37,6 +38,7 @@ void print_help_and_exit(char *progname, int rv) {
 		"	-l		List all supported devices\n"
 		"	-r <filename>	Read memory\n"
 		"	-w <filename>	Write memory\n"
+		"	-d 		Just read the chip ID\n"
 		"	-e 		Do NOT erase device\n"
 		"	-u 		Do NOT disable write-protect\n"
 		"	-P 		Do NOT enable write-protect\n"
@@ -76,7 +78,7 @@ void parse_cmdline(int argc, char **argv) {
 	int8_t c;
 	memset(&cmdopts, 0, sizeof(cmdopts));
 
-	while((c = getopt(argc, argv, "leuPvxyr:w:p:c:iIsSh")) != -1) {
+	while((c = getopt(argc, argv, "leuPvxyr:w:p:c:iIsShd")) != -1) {
 		switch(c) {
 			case 'l':
 				print_devices_and_exit();
@@ -144,6 +146,10 @@ void parse_cmdline(int argc, char **argv) {
 			       break;
 			case 's':
 			        cmdopts.size_error=1;
+				break;
+
+			case 'd':
+				cmdopts.idcheck_only = 1;
 				break;
 
 			case 'h':
@@ -518,7 +524,7 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
-	if(!cmdopts.filename) {
+	if(!cmdopts.filename && !cmdopts.idcheck_only) {
 		print_help_and_exit(argv[0], -1);
 	}
 	if(cmdopts.action && !cmdopts.device) {
@@ -527,6 +533,10 @@ int main(int argc, char **argv) {
 
 	// don't permit skipping the ID read in write-mode
 	if (cmdopts.action == action_write && cmdopts.idcheck_skip) {
+		print_help_and_exit(argv[0], -1);
+	}
+	// don't permit skipping the ID read in ID only mode
+	if (cmdopts.idcheck_only && cmdopts.idcheck_skip) {
 		print_help_and_exit(argv[0], -1);
 	}
 
@@ -538,6 +548,15 @@ int main(int argc, char **argv) {
 	minipro_system_info_t info;
 	minipro_get_system_info(handle, &info);
 	printf("Found Minipro %s v%s\n", info.model_str, info.firmware_str);
+
+	if (cmdopts.idcheck_only) {
+		minipro_begin_transaction(handle);
+		unsigned int chip_id = minipro_get_chip_id(handle);
+		minipro_end_transaction(handle);
+		printf("Chip ID: 0x%02x\n", chip_id);
+		minipro_close(handle);
+		return(0);
+    }
 
 	// Verifying Chip ID (if applicable)
 	if(cmdopts.idcheck_skip) {
