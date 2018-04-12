@@ -556,7 +556,7 @@ int main(int argc, char **argv) {
 		printf("Chip ID: 0x%02x\n", chip_id);
 		minipro_close(handle);
 		return(0);
-    }
+	}
 
 	// Verifying Chip ID (if applicable)
 	if(cmdopts.idcheck_skip) {
