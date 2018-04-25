@@ -122,18 +122,20 @@ The final RPMs can be found below `~/rpmbuild/RPMS/`
 
 ## Installation on macOS
 
-Install `libusb` using brew or MacPorts:
+Install `pkg-config` and `libusb` using brew or MacPorts:
 ```
+brew install pkg-config
 brew install libusb
 brew link libusb
 ```
 or:
 ```
+port install pkgconfig
 port install libusb
 ```
 
 Compile using macOS Makefile:
 ```
 make -f Makefile.macOS
-sudo make install
+sudo make -f Makefile.macOS install
 ```
