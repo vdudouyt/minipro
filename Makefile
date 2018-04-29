@@ -27,6 +27,11 @@ endif
 BUILD_DATE_TIME = $(shell date +%Y%m%d.%k%M%S | sed s/\ //g)
 VERSION_INFO = version.h
 
+PKG_CONFIG := $(shell which pkg-config 2>/dev/null)
+ifeq ($(PKG_CONFIG),)
+        ERROR := $(error "pkg-config utility not found")
+endif
+
 COMMON_OBJECTS=byte_utils.o database.o minipro.o fuses.o easyconfig.o
 OBJECTS=$(COMMON_OBJECTS) main.o minipro-query-db.o
 PROGS=minipro minipro-query-db
@@ -40,8 +45,8 @@ DIST_DIR = $(MINIPRO)-$(VERSION)
 BIN_INSTDIR=$(DESTDIR)$(PREFIX)/bin
 MAN_INSTDIR=$(DESTDIR)$(PREFIX)/share/man/man1
 
-libusb_CFLAGS = $(shell pkg-config --cflags libusb-1.0)
-libusb_LIBS = $(shell pkg-config --libs libusb-1.0)
+libusb_CFLAGS := $(shell $(PKG_CONFIG) --cflags libusb-1.0)
+libusb_LIBS := $(shell $(PKG_CONFIG) --libs libusb-1.0)
 
 CFLAGS = -g -O0
 override CFLAGS += $(libusb_CFLAGS)
