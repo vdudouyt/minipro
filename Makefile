@@ -1,8 +1,17 @@
 # Install Configuration
 
+# Normally minipro is installed to /usr/local.  If you want to put it
+# somewhere else, define that location here.
 PREFIX=/usr/local
 
+# Some older releases of MacOS need some extra library flags.
+#EXTRA_LIBS += "-framework Foundation -framework IOKit"
 
+
+#########################################################################
+# This section is where minipro is actually built.
+# Under normal circumstances, nothing below this point should be changed.
+##########################################################################
 
 # Versioning
 VERSION_MAJOR = 0
@@ -50,7 +59,7 @@ libusb_LIBS := $(shell $(PKG_CONFIG) --libs libusb-1.0)
 
 CFLAGS = -g -O0
 override CFLAGS += $(libusb_CFLAGS)
-override LIBS += $(libusb_LIBS)
+override LIBS += $(libusb_LIBS) $(EXTRA_LIBS)
 
 all: $(PROGS)
 
