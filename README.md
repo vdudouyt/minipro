@@ -122,6 +122,7 @@ The final RPMs can be found below `~/rpmbuild/RPMS/`
 
 ## Installation on macOS
 
+### Install dependencies
 Install `pkg-config` and `libusb` using brew or MacPorts:
 ```
 brew install pkg-config
@@ -133,9 +134,10 @@ or:
 port install pkgconfig
 port install libusb
 ```
-
-Compile using macOS Makefile:
-```
-make -f Makefile.macOS
-sudo make -f Makefile.macOS install
+### Checkout source code and compile
+```nohighlight
+git clone https://github.com/vdudouyt/minipro.git
+cd minipro
+make
+sudo make install
 ```
