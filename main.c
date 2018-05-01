@@ -179,14 +179,19 @@ void parse_cmdline(int argc, char **argv) {
 	}
 }
 
-int get_file_size(const char *filename) {
+size_t get_file_size(const char *filename) {
 	FILE *file = fopen(filename, "r");
 	if(!file) {
 		PERROR("Couldn't open file");
 	}
 
 	fseek(file, 0, SEEK_END);
-	int size = ftell(file);
+
+	if (-1 == ftell(file)) {
+		PERROR("Couldn't tell file");
+	}
+
+	size_t size = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
 	fclose(file);
@@ -201,7 +206,7 @@ void update_status(char *status_msg, char *fmt, ...) {
 	fflush(stdout);
 }
 
-int compare_memory(unsigned char *buf1, unsigned char *buf2, int size, unsigned char *c1, unsigned char *c2) {
+int compare_memory(unsigned char *buf1, unsigned char *buf2, size_t size, unsigned char *c1, unsigned char *c2) {
 	int i;
 	for(i = 0; i < size; i++) {
 		if(buf1[i] != buf2[i]) {
@@ -214,12 +219,12 @@ int compare_memory(unsigned char *buf1, unsigned char *buf2, int size, unsigned 
 }
 
 /* RAM-centric IO operations */
-void read_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int type, const char *name, int size) {
+void read_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int type, const char *name, size_t size) {
 	char status_msg[24];
 	sprintf(status_msg, "Reading %s... ", name);
 
 	device_t *device = handle->device;
-	int blocks_count = size / device->read_buffer_size;
+	size_t blocks_count = size / device->read_buffer_size;
 	if(size % device->read_buffer_size != 0) {
 		blocks_count++;
 	}
@@ -228,11 +233,11 @@ void read_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int ty
 	for(i = 0; i < blocks_count; i++) {
 		update_status(status_msg, "%2d%%", i * 100 / blocks_count);
 		// Translating address to protocol-specific
-		int addr = i * device->read_buffer_size;
+		size_t addr = i * device->read_buffer_size;
 		if(device->opts4 & 0x2000) {
 			addr = addr >> 1;
 		}
-		int len = device->read_buffer_size;
+		size_t len = device->read_buffer_size;
 		// Last block
 		if ((i + 1) * len > size)
 			len = size % len;
@@ -242,13 +247,13 @@ void read_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int ty
 	update_status(status_msg, "OK\n");
 }
 
-void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int type, const char *name, int size) {
+void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int type, const char *name, size_t size) {
 	char status_msg[24];
 	sprintf(status_msg, "Writing %s... ", name);
 
 	device_t *device = handle->device;
 
-	int blocks_count = size / device->write_buffer_size;
+	size_t blocks_count = size / device->write_buffer_size;
 	if(size % device->write_buffer_size != 0) {
 		blocks_count++;
 	}
@@ -271,7 +276,7 @@ void write_page_ram(minipro_handle_t *handle, unsigned char *buf, unsigned int t
 }
 
 /* Wrappers for operating with files */
-void read_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
+void read_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, size_t size) {
 	FILE *file = fopen(filename, "w");
 	if(file == NULL) {
 		PERROR("Couldn't open file for writing");
@@ -289,7 +294,7 @@ void read_page_file(minipro_handle_t *handle, const char *filename, unsigned int
 	free(buf);
 }
 
-void write_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
+void write_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, size_t size) {
 	FILE *file = fopen(filename, "r");
 	if(file == NULL) {
 		PERROR("Couldn't open file for reading");
@@ -385,14 +390,14 @@ void write_fuses(minipro_handle_t *handle, const char *filename, fuse_decl_t *fu
 	printf("OK\n");
 }
 
-void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, int size) {
+void verify_page_file(minipro_handle_t *handle, const char *filename, unsigned int type, const char *name, size_t size) {
 	FILE *file = fopen(filename, "r");
 	if(file == NULL) {
 		PERROR("Couldn't open file for reading");
 	}
 
 	/* Loading file */
-	int file_size = get_file_size(filename);
+	size_t file_size = get_file_size(filename);
 	unsigned char *file_data = malloc(file_size);
 	if (fread(file_data, 1, file_size, file) != file_size) {
 		ERROR("Short read");
@@ -474,16 +479,16 @@ void action_read(const char *filename, minipro_handle_t *handle, device_t *devic
 }
 
 void action_write(const char *filename, minipro_handle_t *handle, device_t *device) {
-	int fsize;
+	size_t fsize;
 	switch(cmdopts.page) {
 		case UNSPECIFIED:
 		case CODE:
 			fsize=get_file_size(filename);
 			if (fsize != device->code_memory_size) {
 				if (!cmdopts.size_error)
-					ERROR2("Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
+					ERROR2("Incorrect file size: %zu (needed %zu)\n", fsize, device->code_memory_size);
 				else if (cmdopts.size_nowarn==0)
-					printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->code_memory_size);
+					printf("Warning: Incorrect file size: %zu (needed %zu)\n", fsize, device->code_memory_size);
 			}
 			break;
 		case DATA:
@@ -491,9 +496,9 @@ void action_write(const char *filename, minipro_handle_t *handle, device_t *devi
 			fsize=get_file_size(filename);
 			if (fsize != device->data_memory_size) {
 				if (!cmdopts.size_error)
-					ERROR2("Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
+					ERROR2("Incorrect file size: %zu (needed %zu)\n", fsize, device->data_memory_size);
 				else if (cmdopts.size_nowarn==0)
-					printf("Warning: Incorrect file size: %d (needed %d)\n", fsize, device->data_memory_size);
+					printf("Warning: Incorrect file size: %zu (needed %zu)\n", fsize, device->data_memory_size);
 			}
 			break;
 		case CONFIG:

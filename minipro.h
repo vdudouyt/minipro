@@ -111,11 +111,11 @@ void minipro_end_transaction(minipro_handle_t *handle);
 void minipro_protect_off(minipro_handle_t *handle);
 void minipro_protect_on(minipro_handle_t *handle);
 int minipro_get_status(minipro_handle_t *handle);
-void minipro_read_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf, unsigned int len);
-void minipro_write_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf, unsigned int len);
+void minipro_read_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf, size_t len);
+void minipro_write_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf, size_t len);
 int minipro_get_chip_id(minipro_handle_t *handle);
-void minipro_read_fuses(minipro_handle_t *handle, unsigned int type, unsigned int length, unsigned char *buf);
-void minipro_write_fuses(minipro_handle_t *handle, unsigned int type, unsigned int length, unsigned char *buf);
+void minipro_read_fuses(minipro_handle_t *handle, unsigned int type, size_t length, unsigned char *buf);
+void minipro_write_fuses(minipro_handle_t *handle, unsigned int type, size_t length, unsigned char *buf);
 void minipro_prepare_writing(minipro_handle_t *handle);
 void minipro_get_system_info(minipro_handle_t *handle, minipro_system_info_t *out);
 

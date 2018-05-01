@@ -19,17 +19,18 @@
 #ifndef __DATABASE_H
 #define __DATABASE_H
 
+#include <stddef.h>
 #include "fuses.h"
 
 typedef struct device {
 	const char *name;
 	unsigned int protocol_id;
 	unsigned int variant;
-	unsigned int read_buffer_size;
-	unsigned int write_buffer_size;
-	unsigned int code_memory_size; // Presenting for every device
-	unsigned int data_memory_size;
-	unsigned int data_memory2_size;
+	size_t read_buffer_size;
+	size_t write_buffer_size;
+	size_t code_memory_size; // Presenting for every device
+	size_t data_memory_size;
+	size_t data_memory2_size;
 	unsigned int chip_id; // A vendor-specific chip ID (i.e. 0x1E9502 for ATMEGA48)
 	unsigned int chip_id_bytes_count : 3;
 	unsigned int opts1;

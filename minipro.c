@@ -18,6 +18,7 @@
 #include <libusb.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #ifdef __APPLE__
 #include <stdio.h>
 #else
@@ -74,25 +75,25 @@ static void msg_init(unsigned char *out_buf, unsigned char cmd, device_t *device
 	format_int(&(out_buf[12]), device->code_memory_size, 4, MP_LITTLE_ENDIAN);
 }
 
-static unsigned int msg_transfer(minipro_handle_t *handle, unsigned char *buf, int length, int direction) {
+static unsigned int msg_transfer(minipro_handle_t *handle, unsigned char *buf, size_t length, int direction) {
 	int bytes_transferred;
 	int ret;
 	ret = libusb_claim_interface(handle->usb_handle, 0);
 	if(ret != 0) ERROR2("IO error: claim_interface: %s\n", libusb_error_name(ret));
-	ret = libusb_bulk_transfer(handle->usb_handle, (1 | direction), buf, length, &bytes_transferred, 0);
+	ret = libusb_bulk_transfer(handle->usb_handle, (1 | direction), buf, (int) length, &bytes_transferred, 0);
 	if(ret != 0) ERROR2("IO error: bulk_transfer: %s\n", libusb_error_name(ret));
 	ret = libusb_release_interface(handle->usb_handle, 0);
 	if(ret != 0) ERROR2("IO error: release_interface: %s\n", libusb_error_name(ret));
-	if(bytes_transferred != length) ERROR2("IO error: expected %d bytes but %d bytes transferred\n", length, bytes_transferred);
-	return bytes_transferred;
+	if(bytes_transferred != length) ERROR2("IO error: expected %zu bytes but %d bytes transferred\n", length, bytes_transferred);
+	return (unsigned int) bytes_transferred;
 }
 
 #ifndef TEST
-static unsigned int msg_send(minipro_handle_t *handle, unsigned char *buf, int length) {
+static unsigned int msg_send(minipro_handle_t *handle, unsigned char *buf, size_t length) {
 	return msg_transfer(handle, buf, length, LIBUSB_ENDPOINT_OUT);
 }
 
-static unsigned int msg_recv(minipro_handle_t *handle, unsigned char *buf, int length) {
+static unsigned int msg_recv(minipro_handle_t *handle, unsigned char *buf, size_t length) {
 	return msg_transfer(handle, buf, length, LIBUSB_ENDPOINT_IN);
 }
 #endif
@@ -134,7 +135,7 @@ int minipro_get_status(minipro_handle_t *handle) {
 	return(load_int(buf, 2, MP_LITTLE_ENDIAN));
 }
 
-void minipro_read_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf, unsigned int len) {
+void minipro_read_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf, size_t len) {
 	msg_init(msg, type, handle->device, handle->icsp);
 	format_int(&(msg[2]), len, 2, MP_LITTLE_ENDIAN);
 	format_int(&(msg[4]), addr, 3, MP_LITTLE_ENDIAN);
@@ -142,7 +143,7 @@ void minipro_read_block(minipro_handle_t *handle, unsigned int type, unsigned in
 	msg_recv(handle, buf, len);
 }
 
-void minipro_write_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf, unsigned int len) {
+void minipro_write_block(minipro_handle_t *handle, unsigned int type, unsigned int addr, unsigned char *buf, size_t len) {
 	msg_init(msg, type, handle->device, handle->icsp);
 	format_int(&(msg[2]), len, 2, MP_LITTLE_ENDIAN);
 	format_int(&(msg[4]), addr, 3, MP_LITTLE_ENDIAN);
@@ -159,7 +160,7 @@ int minipro_get_chip_id(minipro_handle_t *handle) {
 	return(load_int(&(msg[2]), handle->device->chip_id_bytes_count, MP_BIG_ENDIAN));
 }
 
-void minipro_read_fuses(minipro_handle_t *handle, unsigned int type, unsigned int length, unsigned char *buf) {
+void minipro_read_fuses(minipro_handle_t *handle, unsigned int type, size_t length, unsigned char *buf) {
 	msg_init(msg, type, handle->device, handle->icsp);
 	msg[2] = (type==MP_READ_CFG && length==4)?2:1;  // note that PICs with 1 config word will show length==2
 	msg[5] = 0x10;
@@ -168,7 +169,7 @@ void minipro_read_fuses(minipro_handle_t *handle, unsigned int type, unsigned in
 	memcpy(buf, &(msg[7]), length);
 }
 
-void minipro_write_fuses(minipro_handle_t *handle, unsigned int type, unsigned int length, unsigned char *buf) {
+void minipro_write_fuses(minipro_handle_t *handle, unsigned int type, size_t length, unsigned char *buf) {
 	// Perform actual writing
 	switch(type & 0xf0) {
 		case 0x10: // MP_READ_CFG, MP_READ_USER
@@ -193,7 +194,7 @@ void minipro_write_fuses(minipro_handle_t *handle, unsigned int type, unsigned i
 	msg_init(msg, type, handle->device, handle->icsp);
 	msg[2]=(type==MP_READ_CFG && length==4)?2:1;  // note that PICs with 1 config word will show length==2
 	memcpy(&(msg[7]), buf, length);
-	
+
 	msg_send(handle, msg, 18);
 	msg_recv(handle, msg, 7 + length);
 

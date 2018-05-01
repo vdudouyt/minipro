@@ -34,7 +34,7 @@ void print_device_info(device_t *device) {
 	printf("Name: %s\n", device->name);
 
 	/* Memory shape */
-	printf("Memory: %d", device->code_memory_size / WORD_SIZE(device));
+	printf("Memory: %zu", device->code_memory_size / WORD_SIZE(device));
 	switch(device->opts4 & 0xFF000000) {
 		case 0x00000000:
 			printf(" Bytes");
@@ -49,10 +49,10 @@ void print_device_info(device_t *device) {
 			ERROR2("Unknown memory shape: 0x%x\n", device->opts4 & 0xFF000000);
 	}
 	if(device->data_memory_size) {
-		printf(" + %d Bytes", device->data_memory_size);
+		printf(" + %zu Bytes", device->data_memory_size);
 	}
 	if(device->data_memory2_size) {
-		printf(" + %d Bytes", device->data_memory2_size);
+		printf(" + %zu Bytes", device->data_memory2_size);
 	}
 	printf("\n");
 
@@ -77,8 +77,8 @@ void print_device_info(device_t *device) {
 	}
 
 	printf("Protocol: 0x%02x\n", device->protocol_id);
-	printf("Read buffer size: %d Bytes\n", device->read_buffer_size);
-	printf("Write buffer size: %d Bytes\n", device->write_buffer_size);
+	printf("Read buffer size: %zu Bytes\n", device->read_buffer_size);
+	printf("Write buffer size: %zu Bytes\n", device->write_buffer_size);
 }
 
 int main(int argc, char **argv) {
