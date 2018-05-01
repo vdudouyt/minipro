@@ -57,7 +57,7 @@ MAN_INSTDIR=$(DESTDIR)$(PREFIX)/share/man/man1
 libusb_CFLAGS := $(shell $(PKG_CONFIG) --cflags libusb-1.0)
 libusb_LIBS := $(shell $(PKG_CONFIG) --libs libusb-1.0)
 
-CFLAGS = -g -O0
+CFLAGS = -g -O0 -Wall
 override CFLAGS += $(libusb_CFLAGS)
 override LIBS += $(libusb_LIBS) $(EXTRA_LIBS)
 
