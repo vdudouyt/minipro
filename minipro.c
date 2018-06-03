@@ -43,8 +43,18 @@ minipro_handle_t *minipro_open(device_t *device) {
 
 	handle->usb_handle = libusb_open_device_with_vid_pid(handle->ctx, 0x04d8, 0xe11c);
 	if(handle->usb_handle == NULL) {
-		free(handle);
-		ERROR("Error opening device");
+                // We didn't match the vid / pid of the "original" TL866 - so try the new TL866II+
+	        handle->usb_handle = libusb_open_device_with_vid_pid(handle->ctx, 0xa466, 0x0a53);
+
+                // If we don't get that either report error in connecting; otherwise report incompatability...
+	        if(handle->usb_handle == NULL) {
+                        free(handle);
+                        ERROR("Error opening device");
+                }
+                else {
+                        free(handle);
+                        ERROR("This version of the software is not compatible with the TL866 II+");
+                }
 	}
 
 	handle->device = device;
