@@ -1,3 +1,5 @@
+This project has moved to https://gitlab.com/DavidGriffith/minipro/
+
 # minipro
 An open source program for controlling the MiniPRO TL866xx series of chip programmers
 
