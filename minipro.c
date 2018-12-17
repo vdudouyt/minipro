@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#ifdef __APPLE__
+#if defined (__APPLE__) || defined (__FreeBSD__) 
 #include <stdio.h>
 #else
 #include <malloc.h>
